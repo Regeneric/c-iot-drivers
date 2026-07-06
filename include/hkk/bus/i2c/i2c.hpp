@@ -23,6 +23,15 @@ namespace hkk::bus {
     // recover
     // status - OK, TIMEOUT, NACK, BUS_ERROR, INVALID_ARGUMENT 
 
+struct I2C_Config {
+    i2c_inst_t *instance;
+    uint32 baudrate = 100000;   // 100 kHz
+    uint8 sda = 4;              // Default I2C0 SDA
+    uint8 scl = 5;              // Default I2C0 SCL
+    int8 index = -1;
+    int8 status = I2C_OK;
+};
+
 struct I2C {
     void *ctx = nullptr;
 

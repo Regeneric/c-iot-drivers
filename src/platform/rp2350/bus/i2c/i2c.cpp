@@ -10,15 +10,6 @@
 namespace hkk::rp2350 {
 // https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#group_hardware_i2c
 
-struct I2CContext {
-    i2c_inst_t *instance;
-    uint32 baudrate = 100000;   // 100 kHz
-    uint8 sda = 4;              // Default I2C0 SDA
-    uint8 scl = 5;              // Default I2C0 SCL
-    int8 index = -1;
-    int8 status = I2C_OK;
-};
-
 static int8 i2c_init(void *ctx_raw) {
     HTRACE("i2c.cpp -> i2c_init(void*):int8");
 
@@ -27,7 +18,7 @@ static int8 i2c_init(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
@@ -65,7 +56,7 @@ static int8 i2c_deinit(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
@@ -95,7 +86,7 @@ static int8 i2c_set_baudrate(void *ctx_raw, uint32 value) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
     
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
@@ -136,7 +127,7 @@ static int32 i2c_get_baudrate(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
@@ -161,7 +152,7 @@ static int32 i2c_get_index(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
@@ -187,7 +178,7 @@ static int32 i2c_write_blocking(void *ctx_raw, uint8 address, const uint8 *src, 
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
 
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
@@ -238,7 +229,7 @@ static int32 i2c_read_blocking(void *ctx_raw, uint8 address, uint8 *dst, size_t 
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2CContext *ctx = static_cast<I2CContext*>(ctx_raw);
+    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
 
     if(!ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
