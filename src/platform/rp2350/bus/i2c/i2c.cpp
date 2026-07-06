@@ -18,13 +18,14 @@ static int8 i2c_init(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
-    if(!ctx->instance) {
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
-    
-    ::i2c_init(ctx->instance, ctx->baudrate);
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+
+    ::i2c_init(instance, ctx->baudrate);
 
     ::gpio_set_function(ctx->sda, GPIO_FUNC_I2C);
     ::gpio_set_function(ctx->scl, GPIO_FUNC_I2C);
@@ -32,7 +33,7 @@ static int8 i2c_init(void *ctx_raw) {
     ::gpio_pull_up(ctx->sda);
     ::gpio_pull_up(ctx->scl);
 
-    uint8 index = ::i2c_get_index(ctx->instance);
+    uint8 index = ::i2c_get_index(instance);
     ctx->index = static_cast<int8>(index);
 
     if(ctx->index != 0 && ctx->index != 1) {
@@ -56,13 +57,14 @@ static int8 i2c_deinit(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
-    if(!ctx->instance) {
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
-    ::i2c_deinit(ctx->instance);
+    ::i2c_deinit(instance);
 
     ::gpio_deinit(ctx->sda);
     ::gpio_deinit(ctx->scl);
@@ -86,12 +88,13 @@ static int8 i2c_set_baudrate(void *ctx_raw, uint32 value) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
     
-    if(!ctx->instance) {
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(value == 0) {
         HWARN("[  I2C  ] Baud rate cannot be set to 0");
@@ -100,7 +103,7 @@ static int8 i2c_set_baudrate(void *ctx_raw, uint32 value) {
         value = ctx->baudrate;
     }
 
-    uint32 baudrate = ::i2c_set_baudrate(ctx->instance, value);
+    uint32 baudrate = ::i2c_set_baudrate(instance, value);
     
     if(baudrate == 0) {
         HERROR("[  I2C  ] Could not set baud rate to %d", value);
@@ -127,11 +130,12 @@ static int32 i2c_get_baudrate(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
-    if(!ctx->instance) {
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     HDEBUG("[  I2C  ] Current baud rate: %d kHz", (ctx->baudrate / 1000));
     return ctx->baudrate;
@@ -152,13 +156,14 @@ static int32 i2c_get_index(void *ctx_raw) {
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
-    if(!ctx->instance) {
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
-    uint8 index = ::i2c_get_index(ctx->instance);
+    uint8 index = ::i2c_get_index(instance);
     if(index != 0 && index != 1) {
         HERROR("[  I2C  ] Invalid I2C instance index: %d", index);
         return I2C_ERROR_GENERIC;
@@ -178,12 +183,13 @@ static int32 i2c_write_blocking(void *ctx_raw, uint8 address, const uint8 *src, 
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
 
-    if(!ctx->instance) {
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(!src) {
         HERROR("[  I2C  ] Null data pointer passed to function");
@@ -195,7 +201,7 @@ static int32 i2c_write_blocking(void *ctx_raw, uint8 address, const uint8 *src, 
         return I2C_ERROR_ZERO_LENGTH;
     }
 
-    int32 written = ::i2c_write_blocking(ctx->instance, address, src, len, nostop);
+    int32 written = ::i2c_write_blocking(instance, address, src, len, nostop);
 
     if(written == PICO_ERROR_GENERIC) {
         HERROR("[  I2C  ] Address not acknowledged or device not present");
@@ -229,12 +235,13 @@ static int32 i2c_read_blocking(void *ctx_raw, uint8 address, uint8 *dst, size_t 
         return I2C_ERROR_NULL_CONTEXT;
     }
 
-    I2C_Config *ctx = static_cast<I2C_Config*>(ctx_raw);
+    hkk::bus::I2C_Config *ctx = static_cast<hkk::bus::I2C_Config*>(ctx_raw);
 
-    if(!ctx->instance) {
+    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[  I2C  ] Null I2C instance in context");
         return I2C_ERROR_NULL_INSTANCE;
-    }
+    } 
+    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(!dst) {
         HERROR("[  I2C  ] Null data pointer passed to function");
@@ -246,7 +253,7 @@ static int32 i2c_read_blocking(void *ctx_raw, uint8 address, uint8 *dst, size_t 
         return I2C_ERROR_ZERO_LENGTH;
     }
 
-    int32 read = ::i2c_read_blocking(ctx->instance, address, dst, len, nostop);
+    int32 read = ::i2c_read_blocking(instance, address, dst, len, nostop);
 
     if(read == PICO_ERROR_GENERIC) {
         HERROR("[  I2C  ] Address not acknowledged or device not present");
