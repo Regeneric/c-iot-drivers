@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef HLOGGER_HEADER
+#include HLOGGER_HEADER
+#endif
+
 #ifndef HFATAL
 #define HFATAL(...) do {} while (0)
 #endif
