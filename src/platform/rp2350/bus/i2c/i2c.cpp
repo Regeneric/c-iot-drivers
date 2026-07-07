@@ -287,31 +287,6 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
 
 namespace hkk::bus {
 
-static I2C_Config_Context I2C0_default_config {
-    .instance = i2c0,
-    .baudrate = 100000,
-    .sda = 4,
-    .scl = 5,
-    .index = 0
-};
-
-static I2C_Config_Context I2C1_default_config {
-    .instance = i2c1,
-    .baudrate = 100000,
-    .sda = 6,
-    .scl = 7,
-    .index = 1
-};
-
-I2C I2C0;   // Implemented
-I2C I2C1;   // Implemented
-I2C I2C2;   // Not present on RP2350
-I2C I2C3;   // Not present on RP2350
-I2C I2C4;   // Not present on RP2350
-I2C I2C5;   // Not present on RP2350
-I2C I2C6;   // Not present on RP2350
-I2C I2C7;   // Not present on RP2350
-
 int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
     HTRACE("i2c.cpp -> bind(I2C&, I2C_Config_Context&):int8");
 
@@ -331,6 +306,22 @@ int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
 
     return I2C_OK;
 }
+
+static I2C_Config_Context I2C0_default_config {
+    .instance = i2c0,
+    .baudrate = 100000,
+    .sda = 4,
+    .scl = 5,
+    .index = 0
+};
+
+static I2C_Config_Context I2C1_default_config {
+    .instance = i2c1,
+    .baudrate = 100000,
+    .sda = 6,
+    .scl = 7,
+    .index = 1
+};
 
 I2C I2C0 {
     &I2C0_default_config,
@@ -356,4 +347,10 @@ I2C I2C1 {
     hkk::rp2350::read_blocking_fn
 };
 
+I2C I2C2 {};    // Not present on RP2350
+I2C I2C3 {};    // Not present on RP2350
+I2C I2C4 {};    // Not present on RP2350
+I2C I2C5 {};    // Not present on RP2350
+I2C I2C6 {};    // Not present on RP2350
+I2C I2C7 {};    // Not present on RP2350
 }

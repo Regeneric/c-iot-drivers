@@ -7,6 +7,8 @@ namespace hkk::bus {
 struct I2C;
 struct I2C_Config_Context;
 
+// Implement only those present on your uC
+// Keep the rest empty
 extern I2C I2C0;
 extern I2C I2C1;
 extern I2C I2C2;
