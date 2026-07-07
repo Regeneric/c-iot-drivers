@@ -307,7 +307,7 @@ I2C I2C5;
 I2C I2C6;
 I2C I2C7;
 
-int32 bind(I2C *i2c, I2C_Config *cfg) {
+int32 i2c_bind(I2C *i2c, I2C_Config *cfg) {
     HTRACE("i2c.cpp -> bind(I2C&, I2C_Config&):int32");
 
     if(!i2c) return I2C_ERROR_NULL_CONTEXT;
@@ -331,8 +331,8 @@ int32 bind(I2C *i2c, I2C_Config *cfg) {
 }
 
 static int32 bind_default() {
-    bind(&I2C0, &I2C0_cfg);
-    bind(&I2C1, &I2C1_cfg);
+    i2c_bind(&I2C0, &I2C0_cfg);
+    i2c_bind(&I2C1, &I2C1_cfg);
 
     return I2C_OK;
 }
