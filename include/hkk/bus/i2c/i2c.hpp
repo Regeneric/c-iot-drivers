@@ -31,7 +31,7 @@ extern I2C I2C5;
 extern I2C I2C6;
 extern I2C I2C7;
 
-int32 i2c_bind(I2C *i2c, const I2C_Config *cfg);
+int32 i2c_bind(I2C *i2c, I2C_Config *cfg);
 
 
 struct I2C_Config {
