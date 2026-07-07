@@ -31,7 +31,7 @@ extern I2C I2C5;
 extern I2C I2C6;
 extern I2C I2C7;
 
-int32 i2c_bind(I2C *i2c, I2C_Config *cfg);
+int32 bind(I2C *i2c, I2C_Config *cfg);
 
 
 struct I2C_Config {
@@ -77,7 +77,7 @@ public:
 private:
     void *ctx = nullptr;
 
-    friend int32 i2c_bind(I2C *i2c, I2C_Config *cfg);
+    friend int32 bind(I2C *i2c, I2C_Config *cfg);
 
     int8 (*i2c_init)(void *ctx) = nullptr;
     int8 (*i2c_deinit)(void *ctx) = nullptr;

@@ -294,8 +294,8 @@ static I2C_Config I2C0_cfg {
 static I2C_Config I2C1_cfg {
     .instance = i2c1,
     .baudrate = 100000,
-    .sda = 2,
-    .scl = 3,
+    .sda = 6,
+    .scl = 7,
     .index = 1
 };
 
@@ -307,7 +307,7 @@ I2C I2C5;
 I2C I2C6;
 I2C I2C7;
 
-int32 i2c_bind(I2C *i2c, I2C_Config *cfg) {
+int32 bind(I2C *i2c, I2C_Config *cfg) {
     HTRACE("i2c.cpp -> bind(I2C&, I2C_Config&):int32");
 
     if(!i2c) return I2C_ERROR_NULL_CONTEXT;
@@ -331,8 +331,8 @@ int32 i2c_bind(I2C *i2c, I2C_Config *cfg) {
 }
 
 static int32 bind_default() {
-    i2c_bind(&I2C0, &I2C0_cfg);
-    i2c_bind(&I2C1, &I2C1_cfg);
+    bind(&I2C0, &I2C0_cfg);
+    bind(&I2C1, &I2C1_cfg);
 
     return I2C_OK;
 }
