@@ -11,7 +11,7 @@ namespace hkk::rp2350 {
 // https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#group_hardware_i2c
 
 static int8 init_fn(void *ctx_raw) {
-    HTRACE("i2c.cpp -> init_fn(void*):int8");
+    HTRACE("[  I2C  ] i2c.cpp -> init_fn(void*):int8");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -51,7 +51,7 @@ static int8 init_fn(void *ctx_raw) {
 }
 
 static int8 deinit_fn(void *ctx_raw) {
-    HTRACE("i2c.cpp -> deinit_fn(void*):int8");
+    HTRACE("[  I2C  ] i2c.cpp -> deinit_fn(void*):int8");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -83,7 +83,7 @@ static int8 deinit_fn(void *ctx_raw) {
 }
 
 static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
-    HTRACE("i2c.cpp -> set_baudrate_fn(void*, uint32):int8");
+    HTRACE("[  I2C  ] i2c.cpp -> set_baudrate_fn(void*, uint32):int8");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -125,7 +125,7 @@ static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
 }
 
 static int32 get_baudrate_fn(void *ctx_raw) {
-    HTRACE("i2c.cpp -> get_baudrate_fn(void*):int32");
+    HTRACE("[  I2C  ] i2c.cpp -> get_baudrate_fn(void*):int32");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -145,14 +145,14 @@ static int32 get_baudrate_fn(void *ctx_raw) {
 }
 
 static int8 set_index_fn(void *ctx_raw, int8 value) {
-    HTRACE("i2c.cpp -> set_index_fn(void*, int8):int8");
+    HTRACE("[  I2C  ] i2c.cpp -> set_index_fn(void*, int8):int8");
     
     HWARN("[  I2C  ] Function not implemented on RP2350");
     return hkk::bus::I2C_ERROR_NOT_SUPPORTED;
 }
 
 static int32 get_index_fn(void *ctx_raw) {
-    HTRACE("i2c.cpp -> get_index_fn(void*):int32");
+    HTRACE("[  I2C  ] i2c.cpp -> get_index_fn(void*):int32");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -180,7 +180,7 @@ static int32 get_index_fn(void *ctx_raw) {
 }
 
 static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_t len, bool8 nostop = false) {
-    HTRACE("i2c.cpp -> write_blocking_fn(void*, uint8, const uint8*, size_t, bool8):int32");
+    HTRACE("[  I2C  ] i2c.cpp -> write_blocking_fn(void*, uint8, const uint8*, size_t, bool8):int32");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -232,7 +232,7 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 }
 
 static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, bool8 nostop) {
-    HTRACE("i2c.cpp -> read_blocking_fn(void*, uint8, uint8*, size_t, bool8):int32");
+    HTRACE("[  I2C  ] i2c.cpp -> read_blocking_fn(void*, uint8, uint8*, size_t, bool8):int32");
 
     if(!ctx_raw) {
         HERROR("[  I2C  ] Null context passed to function");
@@ -288,7 +288,7 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
 namespace hkk::bus {
 
 int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
-    HTRACE("i2c.cpp -> bind(I2C&, I2C_Config_Context&):int8");
+    HTRACE("[  I2C  ] i2c.cpp -> bind(I2C&, I2C_Config_Context&):int8");
 
     i2c.ctx = static_cast<hkk::bus::I2C_Config_Context*>(&cfg);
 
