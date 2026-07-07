@@ -280,3 +280,64 @@ static int32 i2c_read_blocking(void *ctx_raw, uint8 address, uint8 *dst, size_t 
 }
 
 }
+
+namespace hkk::bus {
+
+static I2C_Config I2C0_cfg {
+    .instance = i2c0,
+    .baudrate = 100000,
+    .sda = 4,
+    .scl = 5,
+    .index = 0
+};
+
+static I2C_Config I2C1_cfg {
+    .instance = i2c1,
+    .baudrate = 100000,
+    .sda = 2,
+    .scl = 3,
+    .index = 1
+};
+
+I2C I2C0;
+I2C I2C1;
+I2C I2C2;
+I2C I2C4;
+I2C I2C5;
+I2C I2C6;
+I2C I2C7;
+
+int32 bind(I2C *i2c, I2C_Config *cfg) {
+    HTRACE("i2c.cpp -> bind(I2C&, I2C_Config&):int32");
+
+    if(!i2c) return I2C_ERROR_NULL_CONTEXT;
+    if(!cfg) return I2C_ERROR_NULL_DATA;
+
+    i2c->ctx = cfg;
+
+    i2c->i2c_init = hkk::rp2350::i2c_init;
+    i2c->i2c_deinit = hkk::rp2350::i2c_deinit;
+
+    i2c->i2c_set_baudrate = hkk::rp2350::i2c_set_baudrate;
+    i2c->i2c_get_baudrate = hkk::rp2350::i2c_get_baudrate;
+
+    i2c->i2c_set_index = hkk::rp2350::i2c_set_index;
+    i2c->i2c_get_index = hkk::rp2350::i2c_get_index;
+
+    i2c->i2c_write_blocking = hkk::rp2350::i2c_write_blocking;
+    i2c->i2c_read_blocking  = hkk::rp2350::i2c_read_blocking;
+
+    return I2C_OK;
+}
+
+static int32 bind_default() {
+    bind(&I2C0, &I2C0_cfg);
+    bind(&I2C1, &I2C1_cfg);
+
+    return I2C_OK;
+}
+
+[[maybe_unused]]
+static int32 bind_default_result = bind_default();
+
+}
