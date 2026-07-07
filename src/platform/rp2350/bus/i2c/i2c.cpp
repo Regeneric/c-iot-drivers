@@ -14,14 +14,14 @@ static int8 init_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> init_fn(void*):int8");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return hkk::bus::I2C_ERROR_NULL_CONTEXT;
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
@@ -38,15 +38,15 @@ static int8 init_fn(void *ctx_raw) {
     ctx->index = static_cast<int8>(index);
 
     if(ctx->index != 0 && ctx->index != 1) {
-        HERROR("[  I2C  ] Invalid I2C instance index: %d", ctx->index);
+        HERROR("[I2C    ] Invalid I2C instance index: %d", ctx->index);
         return hkk::bus::I2C_ERROR_GENERIC;
     }
 
-    HDEBUG("[  I2C  ] SDA pin: %d", ctx->sda);
-    HDEBUG("[  I2C  ] SCL pin: %d", ctx->scl);
-    HDEBUG("[  I2C  ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
+    HDEBUG("[I2C    ] SDA pin: %d", ctx->sda);
+    HDEBUG("[I2C    ] SCL pin: %d", ctx->scl);
+    HDEBUG("[I2C    ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
 
-    HINFO("[  I2C  ] I2C%d initialization successful", ctx->index);
+    HINFO("[I2C    ] I2C%d initialization successful", ctx->index);
     return hkk::bus::I2C_OK;
 }
 
@@ -54,14 +54,14 @@ static int8 deinit_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> deinit_fn(void*):int8");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return hkk::bus::I2C_ERROR_NULL_CONTEXT;
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
@@ -74,10 +74,10 @@ static int8 deinit_fn(void *ctx_raw) {
     ::gpio_set_pulls(ctx->sda, false, false);
     ::gpio_set_pulls(ctx->scl, false, false);
 
-    HINFO("[  I2C  ] I2C%d deinitialization successful", ctx->index);
+    HINFO("[I2C    ] I2C%d deinitialization successful", ctx->index);
 
     ctx->index = -1;
-    HDEBUG("[  I2C  ] Instance index set to %d", ctx->index);
+    HDEBUG("[I2C    ] Instance index set to %d", ctx->index);
 
     return hkk::bus::I2C_OK;
 }
@@ -86,21 +86,21 @@ static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
     HTRACE("i2c.cpp -> set_baudrate_fn(void*, uint32):int8");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return hkk::bus::I2C_ERROR_NULL_CONTEXT;
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
     
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(value == 0) {
-        HWARN("[  I2C  ] Baud rate cannot be set to 0");
-        HWARN("[  I2C  ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
+        HWARN("[I2C    ] Baud rate cannot be set to 0");
+        HWARN("[I2C    ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
 
         value = ctx->baudrate;
     }
@@ -108,18 +108,18 @@ static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
     uint32 baudrate = ::i2c_set_baudrate(instance, value);
     
     if(baudrate == 0) {
-        HERROR("[  I2C  ] Could not set baud rate to %d", value);
+        HERROR("[I2C    ] Could not set baud rate to %d", value);
         return hkk::bus::I2C_ERROR_GENERIC;
     }
 
     if(baudrate != value) {
-        HWARN("[  I2C  ] Actual baud rate differs from desired baud rate");
-        HWARN("[  I2C  ] Desired: %d kHz", (ctx->baudrate / 1000));
-        HWARN("[  I2C  ] Actual : %d kHz", (baudrate/1000));
+        HWARN("[I2C    ] Actual baud rate differs from desired baud rate");
+        HWARN("[I2C    ] Desired: %d kHz", (ctx->baudrate / 1000));
+        HWARN("[I2C    ] Actual : %d kHz", (baudrate/1000));
     }
 
     ctx->baudrate = baudrate;
-    HINFO("[  I2C  ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
+    HINFO("[I2C    ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
 
     return hkk::bus::I2C_OK;
 }
@@ -128,26 +128,26 @@ static int32 get_baudrate_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> get_baudrate_fn(void*):int32");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
-    HDEBUG("[  I2C  ] Current baud rate: %d kHz", (ctx->baudrate / 1000));
+    HDEBUG("[I2C    ] Current baud rate: %d kHz", (ctx->baudrate / 1000));
     return static_cast<int32>(ctx->baudrate);
 }
 
 static int8 set_index_fn(void *ctx_raw, int8 value) {
     HTRACE("i2c.cpp -> set_index_fn(void*, int8):int8");
     
-    HWARN("[  I2C  ] Function not implemented on RP2350");
+    HWARN("[I2C    ] Function not implemented on RP2350");
     return hkk::bus::I2C_ERROR_NOT_SUPPORTED;
 }
 
@@ -155,25 +155,25 @@ static int32 get_index_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> get_index_fn(void*):int32");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     uint8 index = ::i2c_get_index(instance);
     if(index != 0 && index != 1) {
-        HERROR("[  I2C  ] Invalid I2C instance index: %d", index);
+        HERROR("[I2C    ] Invalid I2C instance index: %d", index);
         return static_cast<int32>(hkk::bus::I2C_ERROR_GENERIC);
     }
 
-    HDEBUG("[  I2C  ] Current index: %d", index);
+    HDEBUG("[I2C    ] Current index: %d", index);
     ctx->index = static_cast<int8>(index);
     
     return static_cast<int32>(ctx->index);
@@ -183,51 +183,51 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
     HTRACE("i2c.cpp -> write_blocking_fn(void*, uint8, const uint8*, size_t, bool8):int32");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(!src) {
-        HERROR("[  I2C  ] Null data pointer passed to function");
+        HERROR("[I2C    ] Null data pointer passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_DATA);
     }
 
     if(len == 0) {
-        HERROR("[  I2C  ] Data length is 0");
+        HERROR("[I2C    ] Data length is 0");
         return static_cast<int32>(hkk::bus::I2C_ERROR_ZERO_LENGTH);
     }
 
     int32 written = ::i2c_write_blocking(instance, addr, src, len, nostop);
 
     if(written == PICO_ERROR_GENERIC) {
-        HERROR("[  I2C  ] Address not acknowledged or device not present");
+        HERROR("[I2C    ] Address not acknowledged or device not present");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
     }
 
     if(written < 0) {
-        HERROR("[  I2C  ] Write failed");
+        HERROR("[I2C    ] Write failed");
         return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
     }
 
     if(static_cast<size_t>(written) != len) {
-        HERROR("[  I2C  ] Partial write: %d/%zu bytes written", written, len);
+        HERROR("[I2C    ] Partial write: %d/%zu bytes written", written, len);
         return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_WRITE);
     }
 
-    HDEBUG("[  I2C  ] First byte   : 0x%02X", src[0]);
-    HDEBUG("[  I2C  ] Data length  : %zu", len);
-    HDEBUG("[  I2C  ] Bytes written: %d", written);
-    HDEBUG("[  I2C  ] No STOP      : %s", nostop ? "true" : "false");
+    HDEBUG("[I2C    ] First byte   : 0x%02X", src[0]);
+    HDEBUG("[I2C    ] Data length  : %zu", len);
+    HDEBUG("[I2C    ] Bytes written: %d", written);
+    HDEBUG("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[  I2C  ] Write completed successfully");
+    HINFO("[I2C    ] Write completed successfully");
     return written;
 }
 
@@ -235,51 +235,51 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
     HTRACE("i2c.cpp -> read_blocking_fn(void*, uint8, uint8*, size_t, bool8):int32");
 
     if(!ctx_raw) {
-        HERROR("[  I2C  ] Null context passed to function");
+        HERROR("[I2C    ] Null context passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
     }
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
     if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
-        HERROR("[  I2C  ] Null I2C instance in context");
+        HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
     i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
 
     if(!dst) {
-        HERROR("[  I2C  ] Null data pointer passed to function");
+        HERROR("[I2C    ] Null data pointer passed to function");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_DATA);
     }
 
     if(len == 0) {
-        HERROR("[  I2C  ] Data length is 0");
+        HERROR("[I2C    ] Data length is 0");
         return static_cast<int32>(hkk::bus::I2C_ERROR_ZERO_LENGTH);
     }
 
     int32 read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
 
     if(read == PICO_ERROR_GENERIC) {
-        HERROR("[  I2C  ] Address not acknowledged or device not present");
+        HERROR("[I2C    ] Address not acknowledged or device not present");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
     }
 
     if(read < 0) {
-        HERROR("[  I2C  ] Read failed");
+        HERROR("[I2C    ] Read failed");
         return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
     }
 
     if(static_cast<size_t>(read) != len) {
-        HERROR("[  I2C  ] Partial read: %d/%zu bytes read", read, len);
+        HERROR("[I2C    ] Partial read: %d/%zu bytes read", read, len);
         return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_READ);
     }
 
-    HDEBUG("[  I2C  ] First byte   : 0x%02X", dst[0]);
-    HDEBUG("[  I2C  ] Data length  : %zu", len);
-    HDEBUG("[  I2C  ] Bytes read   : %d", read);
-    HDEBUG("[  I2C  ] No STOP      : %s", nostop ? "true" : "false");
+    HDEBUG("[I2C    ] First byte   : 0x%02X", dst[0]);
+    HDEBUG("[I2C    ] Data length  : %zu", len);
+    HDEBUG("[I2C    ] Bytes read   : %d", read);
+    HDEBUG("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[  I2C  ] Read completed successfully");
+    HINFO("[I2C    ] Read completed successfully");
     return read;
 }
 
