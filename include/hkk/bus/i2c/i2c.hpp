@@ -33,6 +33,7 @@ enum I2C_Result : int8 {
     I2C_ERROR_PARTIAL_READ       = -8,
     I2C_ERROR_READ_FAILED        = -9,  
     I2C_ERROR_NOT_SUPPORTED      = -10, 
+    I2C_ERROR_TIMEOUT            = -11,
     I2C_ERROR_GENERIC            = -100,
     I2C_FUNCTION_NOT_IMPLEMENTED = -101,
 };
@@ -112,6 +113,15 @@ public:
         return read(addr, dst, N, nostop);
     }
 
+
+    int32 write_timeout(uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop = false) {
+        return write_timeout_fn ? write_timeout_fn(ctx, addr, src, len, timeout_us, nostop) : I2C_FUNCTION_NOT_IMPLEMENTED;
+    }
+    template <size_t N>
+    int32 write_timeout(uint8 addr, uint8 (&src)[N], uint32 timeout_us, bool8 nostop = true) {
+        return write_timeout(addr, src, N, timeout_us, nostop);
+    }
+
 private:
     void *ctx = nullptr;
 
@@ -128,5 +138,8 @@ private:
 
     int32 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, bool8 nostop) = nullptr;
     int32 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, bool8 nostop) = nullptr;
+
+    int32 (*write_timeout_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
+    int32 (*read_timeout_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
 };
 }  

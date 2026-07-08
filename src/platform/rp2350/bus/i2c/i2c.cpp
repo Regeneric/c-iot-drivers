@@ -20,11 +20,11 @@ static int8 init_fn(void *ctx_raw) {
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     ::i2c_init(instance, ctx->baudrate);
 
@@ -60,11 +60,11 @@ static int8 deinit_fn(void *ctx_raw) {
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     ::i2c_deinit(instance);
 
@@ -92,11 +92,11 @@ static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
     
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return hkk::bus::I2C_ERROR_NULL_INSTANCE;
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     if(value == 0) {
         HWARN("[I2C    ] Baud rate cannot be set to 0");
@@ -134,11 +134,11 @@ static int32 get_baudrate_fn(void *ctx_raw) {
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     HDEBUG("[I2C    ] Current baud rate: %d kHz", (ctx->baudrate / 1000));
     return static_cast<int32>(ctx->baudrate);
@@ -161,11 +161,11 @@ static int32 get_index_fn(void *ctx_raw) {
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     uint8 index = ::i2c_get_index(instance);
     if(index != 0 && index != 1) {
@@ -180,7 +180,7 @@ static int32 get_index_fn(void *ctx_raw) {
 }
 
 static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_t len, bool8 nostop = false) {
-    HTRACE("i2c.cpp -> write_blocking_fn(void*, uint8, const uint8*, size_t, bool8):int32");
+    HTRACE("i2c.cpp -> write_blocking_fn(void*, uint8, const uint8*, size_t, bool8 = false):int32");
 
     if(!ctx_raw) {
         HERROR("[I2C    ] Null context passed to function");
@@ -189,11 +189,11 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     if(!src) {
         HERROR("[I2C    ] Null data pointer passed to function");
@@ -207,14 +207,13 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 
     int32 written = ::i2c_write_blocking(instance, addr, src, len, nostop);
 
-    if(written == PICO_ERROR_GENERIC) {
-        HERROR("[I2C    ] Address not acknowledged or device not present");
-        return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
-    }
-
-    if(written < 0) {
-        HERROR("[I2C    ] Write failed");
-        return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
+    switch(written) {
+        case PICO_ERROR_GENERIC:
+            HERROR("[I2C    ] Address not acknowledged or device not present");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
+        default:
+            HERROR("[I2C    ] Write failed");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
     }
 
     if(static_cast<size_t>(written) != len) {
@@ -222,17 +221,17 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
         return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_WRITE);
     }
 
-    HDEBUG("[I2C    ] First byte   : 0x%02X", src[0]);
-    HDEBUG("[I2C    ] Data length  : %zu", len);
+    HTRACE("[I2C    ] First byte   : 0x%02X", src[0]);
+    HTRACE("[I2C    ] Data length  : %zu", len);
     HDEBUG("[I2C    ] Bytes written: %d", written);
-    HDEBUG("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
+    HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
     HINFO("[I2C    ] Write completed successfully");
     return written;
 }
 
-static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, bool8 nostop) {
-    HTRACE("i2c.cpp -> read_blocking_fn(void*, uint8, uint8*, size_t, bool8):int32");
+static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, bool8 nostop = false) {
+    HTRACE("i2c.cpp -> read_blocking_fn(void*, uint8, uint8*, size_t, bool8 = false):int32");
 
     if(!ctx_raw) {
         HERROR("[I2C    ] Null context passed to function");
@@ -241,11 +240,11 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
 
     auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
 
-    if(!static_cast<i2c_inst*>(ctx->instance) || !ctx->instance) {
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
         return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
     } 
-    i2c_inst *instance = static_cast<i2c_inst*>(ctx->instance);
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
     if(!dst) {
         HERROR("[I2C    ] Null data pointer passed to function");
@@ -259,14 +258,13 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
 
     int32 read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
 
-    if(read == PICO_ERROR_GENERIC) {
-        HERROR("[I2C    ] Address not acknowledged or device not present");
-        return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
-    }
-
-    if(read < 0) {
-        HERROR("[I2C    ] Read failed");
-        return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
+    switch(read) {
+        case PICO_ERROR_GENERIC:
+            HERROR("[I2C    ] Address not acknowledged or device not present");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
+        default:
+            HERROR("[I2C    ] Read failed");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
     }
 
     if(static_cast<size_t>(read) != len) {
@@ -274,10 +272,119 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
         return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_READ);
     }
 
-    HDEBUG("[I2C    ] First byte   : 0x%02X", dst[0]);
-    HDEBUG("[I2C    ] Data length  : %zu", len);
+    HTRACE("[I2C    ] First byte   : 0x%02X", dst[0]);
+    HTRACE("[I2C    ] Data length  : %zu", len);
     HDEBUG("[I2C    ] Bytes read   : %d", read);
-    HDEBUG("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
+    HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
+
+    HINFO("[I2C    ] Read completed successfully");
+    return read;
+}
+
+static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop = false) {
+    HTRACE("i2c.cpp -> write_timeout_fn(void*, uint8, const uint8*, size_t, uint32, bool8 = false):int32");
+
+    if(!ctx_raw) {
+        HERROR("[I2C    ] Null context passed to function");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
+    }
+
+    auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
+
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
+        HERROR("[I2C    ] Null I2C instance in context");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
+    }
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
+
+    if(!src) {
+        HERROR("[I2C    ] Null data pointer passed to function");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_DATA);   
+    }
+    
+    if(!len) {
+        HERROR("[I2C    ] Data length is 0");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_ZERO_LENGTH);
+    }
+
+    int32 written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
+
+    switch(written) {
+        case PICO_ERROR_GENERIC:
+            HERROR("[I2C    ] Address not acknowledged or device not present");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
+        case PICO_ERROR_TIMEOUT:
+            HERROR("[I2C    ] Timeout reached on write");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_TIMEOUT);
+        default:
+            HERROR("[I2C    ] Write failed");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
+    }
+
+    if(static_cast<size_t>(written) != len) {
+        HERROR("[I2C    ] Partial write: %d/%zu bytes written", written, len);
+        return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_WRITE);
+    }
+
+    HTRACE("[I2C    ] First byte   : 0x%02X", src[0]);
+    HTRACE("[I2C    ] Data length  : %zu", len);
+    HDEBUG("[I2C    ] Bytes written: %d", written);
+    HTRACE("[I2C    ] Timeout      : %dus", timeout_us);
+    HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
+
+    HINFO("[I2C    ] Write completed successfully");
+    return written;
+}
+
+static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop = false) {
+    HTRACE("i2c.cpp -> read_timeout_fn(void*, uint8, uint8*, size_t, uint32, bool8 = false):int32");
+
+    if(!ctx_raw) {
+        HERROR("[I2C    ] Null context passed to function");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_CONTEXT);
+    }
+
+    auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
+
+    if(!static_cast<::i2c_inst*>(ctx->instance) || !ctx->instance) {
+        HERROR("[I2C    ] Null I2C instance in context");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_INSTANCE);
+    }
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
+
+    if(!dst) {
+        HERROR("[I2C    ] Null data pointer passed to function");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_DATA);
+    }
+
+    if(len == 0) {
+        HERROR("[I2C    ] Data length is 0");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_ZERO_LENGTH);
+    }
+
+    int32 read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
+
+    switch(read) {
+        case PICO_ERROR_GENERIC:
+            HERROR("[I2C    ] Address not acknowledged or device not present");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
+        case PICO_ERROR_TIMEOUT:
+            HERROR("[I2C    ] Timeout reached on write");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_TIMEOUT);
+        default:
+            HERROR("[I2C    ] Read failed");
+            return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
+    }
+
+    if(static_cast<size_t>(read) != len) {
+        HERROR("[I2C    ] Partial read: %d/%zu bytes read", read, len);
+        return static_cast<int32>(hkk::bus::I2C_ERROR_PARTIAL_READ);
+    }
+
+    HTRACE("[I2C    ] First byte   : 0x%02X", dst[0]);
+    HTRACE("[I2C    ] Data length  : %zu", len);
+    HDEBUG("[I2C    ] Bytes read   : %d", read);
+    HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
     HINFO("[I2C    ] Read completed successfully");
     return read;
@@ -304,10 +411,11 @@ int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
     i2c.write_blocking_fn = hkk::rp2350::write_blocking_fn;
     i2c.read_blocking_fn  = hkk::rp2350::read_blocking_fn;
 
+    HDEBUG("[I2C    ] I2C instance bound to config context");
     return I2C_OK;
 }
 
-static I2C_Config_Context I2C0_default_config {
+static I2C_Config_Context i2c0_default_config {
     .instance = i2c0,
     .baudrate = 100000,
     .sda = 4,
@@ -315,7 +423,7 @@ static I2C_Config_Context I2C0_default_config {
     .index = 0
 };
 
-static I2C_Config_Context I2C1_default_config {
+static I2C_Config_Context i2c1_default_config {
     .instance = i2c1,
     .baudrate = 100000,
     .sda = 6,
@@ -324,7 +432,7 @@ static I2C_Config_Context I2C1_default_config {
 };
 
 I2C I2C0 {
-    &I2C0_default_config,
+    &i2c0_default_config,
     hkk::rp2350::init_fn,
     hkk::rp2350::deinit_fn,
     hkk::rp2350::set_baudrate_fn,
@@ -336,7 +444,7 @@ I2C I2C0 {
 };
 
 I2C I2C1 {
-    &I2C1_default_config,
+    &i2c1_default_config,
     hkk::rp2350::init_fn,
     hkk::rp2350::deinit_fn,
     hkk::rp2350::set_baudrate_fn,
