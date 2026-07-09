@@ -103,7 +103,9 @@ public:
         int8  (*set_index_fn)(void *ctx, int8 value),
         int32 (*get_index_fn)(void *ctx),
         int32 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, bool8 nostop),
-        int32 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, bool8 nostop)
+        int32 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, bool8 nostop),
+        int8  (*transaction_fn)(void *ctx, void *owner),
+        int8  (*commit_fn)(void *ctx, void *owner)
     ) : ctx(cfg),
         init_fn(init_fn),
         deinit_fn(deinit_fn),
@@ -112,7 +114,9 @@ public:
         set_index_fn(set_index_fn),
         get_index_fn(get_index_fn),
         write_blocking_fn(write_blocking_fn),
-        read_blocking_fn(read_blocking_fn)
+        read_blocking_fn(read_blocking_fn),
+        transaction_fn(transaction_fn),
+        commit_fn(commit_fn)
     {}
 
 
@@ -198,8 +202,8 @@ private:
     int32 (*write_timeout_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
     int32 (*read_timeout_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
 
-    int8 (*transaction_fn)(void *ctx, void *owner);
-    int8 (*commit_fn)(void *ctx, void *owner);
+    int8 (*transaction_fn)(void *ctx, void *owner) = nullptr;
+    int8 (*commit_fn)(void *ctx, void *owner) = nullptr;
 };
 
 }  

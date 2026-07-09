@@ -11,6 +11,44 @@
 namespace hkk::rp2350 {
 // https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#group_hardware_i2c
 
+static int8 deinit_fn(void *ctx_raw) {
+    HTRACE("i2c.cpp -> s:deinit_fn(void*):int8");
+
+    if(!ctx_raw) {
+        HERROR("[I2C    ] Null context passed to function");
+        return hkk::bus::I2C_ERROR_NULL_CONTEXT;
+    }
+
+    auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
+
+    if(!ctx->instance) {
+        HERROR("[I2C    ] Null I2C instance in context");
+        return hkk::bus::I2C_ERROR_NULL_INSTANCE;
+    } 
+    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
+
+    ::i2c_deinit(instance);
+
+    ::gpio_deinit(ctx->sda);
+    ::gpio_deinit(ctx->scl);
+
+    ::gpio_set_pulls(ctx->sda, false, false);
+    ::gpio_set_pulls(ctx->scl, false, false);
+
+    if(!ctx->transaction || !ctx->transaction->mutex) {
+        HWARN("[I2C    ] Null I2C mutex in context");
+    } else {
+        ::mutex_exit(static_cast<::mutex_t*>(ctx->transaction->mutex));
+    }
+
+    HINFO("[I2C    ] I2C%d deinitialization successful", ctx->index);
+
+    ctx->index = -1;
+    HDEBUG("[I2C    ] Instance index set to %d", ctx->index);
+
+    return hkk::bus::I2C_OK;
+}
+
 static int8 init_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> s:init_fn(void*):int8");
 
@@ -56,44 +94,6 @@ static int8 init_fn(void *ctx_raw) {
     HDEBUG("[I2C    ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
 
     HINFO("[I2C    ] I2C%d initialization successful", ctx->index);
-    return hkk::bus::I2C_OK;
-}
-
-static int8 deinit_fn(void *ctx_raw) {
-    HTRACE("i2c.cpp -> s:deinit_fn(void*):int8");
-
-    if(!ctx_raw) {
-        HERROR("[I2C    ] Null context passed to function");
-        return hkk::bus::I2C_ERROR_NULL_CONTEXT;
-    }
-
-    auto *ctx = static_cast<hkk::bus::I2C_Config_Context*>(ctx_raw);
-
-    if(!ctx->instance) {
-        HERROR("[I2C    ] Null I2C instance in context");
-        return hkk::bus::I2C_ERROR_NULL_INSTANCE;
-    } 
-    ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
-
-    ::i2c_deinit(instance);
-
-    ::gpio_deinit(ctx->sda);
-    ::gpio_deinit(ctx->scl);
-
-    ::gpio_set_pulls(ctx->sda, false, false);
-    ::gpio_set_pulls(ctx->scl, false, false);
-
-    if(!ctx->transaction || !ctx->transaction->mutex) {
-        HWARN("[I2C    ] Null I2C mutex in context");
-    } else {
-        ::mutex_exit(static_cast<::mutex_t*>(ctx->transaction->mutex));
-    }
-
-    HINFO("[I2C    ] I2C%d deinitialization successful", ctx->index);
-
-    ctx->index = -1;
-    HDEBUG("[I2C    ] Instance index set to %d", ctx->index);
-
     return hkk::bus::I2C_OK;
 }
 
