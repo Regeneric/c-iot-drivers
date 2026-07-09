@@ -589,12 +589,16 @@ int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
 
 static ::mutex_t i2c0_mutex;
 static I2C_Bus_Lock_State i2c0_transaction {
-    .mutex = &i2c0_mutex
+    .mutex  = &i2c0_mutex,
+    .owner  = nullptr,
+    .active = false,
 };
 
 static ::mutex_t i2c1_mutex;
 static I2C_Bus_Lock_State i2c1_transaction {
-    .mutex = &i2c1_mutex
+    .mutex = &i2c1_mutex,
+    .owner  = nullptr,
+    .active = false,
 };
 
 static I2C_Config_Context i2c0_default_config {

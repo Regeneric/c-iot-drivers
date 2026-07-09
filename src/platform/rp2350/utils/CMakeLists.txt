@@ -1,3 +1,5 @@
+# stc/platform/rp2350/utils/CMakeLists.txt
+
 add_library(hkk_utils_rp2350 
     STATIC EXCLUDE_FROM_ALL
         utils.cpp
