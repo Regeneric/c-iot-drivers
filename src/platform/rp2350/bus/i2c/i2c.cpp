@@ -231,9 +231,11 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
         ::mutex_enter_blocking(mutex);
+        transaction->active = true;
         
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
 
+        transaction->active = true;
         ::mutex_exit(mutex);
     } else {
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
@@ -295,9 +297,11 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
         ::mutex_enter_blocking(mutex);
+        transaction->active = true;
         
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
 
+        transaction->active = true;
         ::mutex_exit(mutex);
     } else {
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
@@ -359,9 +363,11 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
         ::mutex_enter_timeout_us(mutex, timeout_us);
+        transaction->active = true;
         
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
 
+        transaction->active = true;
         ::mutex_exit(mutex);
     } else {
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
@@ -428,9 +434,11 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
         ::mutex_enter_timeout_us(mutex, timeout_us);
+        transaction->active = true;
         
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
 
+        transaction->active = true;
         ::mutex_exit(mutex);
     } else {
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
