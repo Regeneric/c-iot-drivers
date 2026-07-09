@@ -248,8 +248,6 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
         }
 
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-        HTRACE("[SGP30  ] Command: 0x%04X", static_cast<uint16>(command));
-
         return SGP30_OK;
     }
 }
