@@ -577,6 +577,9 @@ int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
     i2c.write_blocking_fn = hkk::rp2350::write_blocking_fn;
     i2c.read_blocking_fn  = hkk::rp2350::read_blocking_fn;
 
+    i2c.transaction_fn = hkk::rp2350::transaction_fn;
+    i2c.commit_fn = hkk::rp2350::commit_fn;
+
     HDEBUG("[I2C    ] I2C instance bound to config context");
     return I2C_OK;
 }

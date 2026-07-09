@@ -70,6 +70,8 @@ public:
     ~I2C_Transaction_Guard() {
         if(status == I2C_OK && commit_fn != nullptr && ctx != nullptr) {
             commit_fn(ctx, owner);
+        } else {
+            HERROR("[I2C    ] Transaction function not implemented");
         }
     }
 };

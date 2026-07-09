@@ -128,11 +128,11 @@ int8 SGP30::read_raw_data(uint8 *data, size_t len) {
                 default:
                     return SGP30_ERROR_I2C;
             }
-
-            HTRACE("[SGP30  ] Raw data read from address: 0x%02X", this->cfg.address);
-            return SGP30_OK;
         }
     }
+
+    HTRACE("[SGP30  ] Raw data read from address: 0x%02X", this->cfg.address);
+    return SGP30_OK;
 }
 
 int8 SGP30::send_command(Command command) {
