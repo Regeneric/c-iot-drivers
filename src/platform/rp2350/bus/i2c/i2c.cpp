@@ -624,7 +624,9 @@ I2C I2C0 {
     hkk::rp2350::set_index_fn,
     hkk::rp2350::get_index_fn,
     hkk::rp2350::write_blocking_fn,
-    hkk::rp2350::read_blocking_fn
+    hkk::rp2350::read_blocking_fn,
+    hkk::rp2350::transaction_fn,
+    hkk::rp2350::commit_fn
 };
 
 I2C I2C1 {
@@ -636,7 +638,9 @@ I2C I2C1 {
     hkk::rp2350::set_index_fn,
     hkk::rp2350::get_index_fn,
     hkk::rp2350::write_blocking_fn,
-    hkk::rp2350::read_blocking_fn
+    hkk::rp2350::read_blocking_fn,
+    hkk::rp2350::transaction_fn,
+    hkk::rp2350::commit_fn
 };
 
 I2C I2C2 {};    // Not present on RP2350
