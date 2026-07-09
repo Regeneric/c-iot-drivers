@@ -6,6 +6,6 @@
 namespace hkk::utils {
 
 void sleep_us(uint64 us) {::sleep_us(us);}
-void sleep_ms(uint64 ms) {::sleep_us(ms);}
+void sleep_ms(uint64 ms) {::sleep_ms(ms);}
 
 }
