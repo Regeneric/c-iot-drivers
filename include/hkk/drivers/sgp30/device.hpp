@@ -1,6 +1,8 @@
 #pragma once
 #include <hkk/defines.h>
 
+#include <hkk/bus/i2c/i2c.hpp>/
+
 #include <hkk/drivers/sgp30/model.hpp>
 
 namespace hkk::sgp30 {

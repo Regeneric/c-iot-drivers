@@ -4,7 +4,7 @@
 
 namespace hkk::bus {   
 
-struct I2C;
+class I2C;
 struct I2C_Config_Context;
 struct I2C_Bus_Lock_State;
 
