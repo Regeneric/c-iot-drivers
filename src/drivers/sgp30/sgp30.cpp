@@ -12,6 +12,11 @@ namespace hkk::sgp30 {
 int8 SGP30::setup(uint8 *baseline, size_t len) {
     HTRACE("sgp30.cpp -> SGP30::init(uint8*, size_t):int8");
 
+    if(!this->cfg.enable) {
+        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
+        return SGP30_ERROR_SENSOR_DISABLED;
+    }
+
     if(!baseline) {
         HERROR("[SGP30  ] Null data pointer passed to function");
         return SGP30_ERROR_NULL_DATA;
@@ -38,6 +43,11 @@ int8 SGP30::setup(uint8 *baseline, size_t len) {
 
 int8 SGP30::setup(void) {
     HTRACE("sgp30.cpp -> SGP30::init(-):int8");
+
+    if(!this->cfg.enable) {
+        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
+        return SGP30_ERROR_SENSOR_DISABLED;
+    }
 
     HWARN("[SGP30  ] No IAQ baseline provided");
     HWARN("[SGP30  ] Performing a cold start");

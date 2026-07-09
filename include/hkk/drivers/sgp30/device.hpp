@@ -9,12 +9,7 @@ namespace hkk::sgp30 {
 
 class SGP30 {
 public:
-    SGP30(hkk::bus::I2C &i2c, const Config &cfg) : i2c(i2c), cfg(cfg) {
-        if(cfg.enable == false) {
-            HINFO("[SGP30  ] Sensor on bus I2C%d is disabled in the config file", i2c.index());
-            throw SGP30_ERROR_SENSOR_DISABLED;  // TODO: there are better ways to handle it than exceptions
-        }
-    }
+    SGP30(hkk::bus::I2C &i2c, const Config &cfg) : i2c(i2c), cfg(cfg) {}
 
     int8 setup(void);
     int8 setup(uint8 *data, size_t len);
