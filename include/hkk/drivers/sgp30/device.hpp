@@ -3,53 +3,11 @@
 
 namespace hkk::sgp30 {
 
-enum Command : uint16 {
-    SoftReset                = 0x0006,
-    IaqInit                  = 0x2003,
-    MeasureIaq               = 0x2008,
-    GetIaqBaseline           = 0x2015,
-    SetIaqBaseline           = 0x201E,
-    SetAbsoluteHumidity      = 0x2061, 
-    MeasureTest              = 0x2032,
-    GetFeatureSet            = 0x202F,
-    MeasureRaw               = 0x2050,
-    GetTvocInceptiveBaseline = 0x20B3,
-    SetTvocBaseline          = 0x2077,
-    GetSerialId              = 0x3682,
-};
-
-enum CRC : uint8 {
-    Mask  = 0x31,
-    Base  = 0xFF,
-    Msbit = 0x80,
-};
-
-enum Measure : uint16 {
-    Test       = 0xD400,
-    FeatureSet = 0x0022,
-};
-
-enum Result : int8 {
-    SGP30_OK                        =  0,
-    SGP30_ERROR_NULL_CONTEXT        = -1,
-    SGP30_ERROR_NULL_INSTANCE       = -2,
-    SGP30_ERROR_WRITE_FAILED        = -3,
-    SGP30_ERROR_I2C                 = -4,
-    SGP30_ERROR_I2C_TRANSACTION     = -5,
-    SGP30_ERROR_WRITE_FAILED        = -6,
-    SGP30_ERROR_READ_FAILED         = -7,
-    SGP30_ERROR_DEVICE_NOT_FOUND    = -8,
-    SGP30_ERROR_TIMEOUT             = -9,
-    SGP30_ERROR_NULL_DATA           = -10,
-    SGP30_ERROR_GENERIC             = -100,
-    SGP30_FUNCTION_NOT_IMPLEMENTED  = -101,
-};
-
 class SGP30 {
 public:
-    explicit SGP30(
+    SGP30(
         hkk::bus::I2C &i2c, 
-        const Config cfg) 
+        const Config &cfg) 
     : i2c(i2c), 
       cfg(cfg) 
     {}
@@ -57,11 +15,47 @@ public:
     int8 init();
     int8 send_command(Command command);
 
+    int8 send_payload(uint8 *payload, size_t len);
+    template <size_t N>
+    int8 send_payload(uint8 (&payload)[N]) {
+        return send_payload(payload, N);
+    }
+
     int8 iaq_init();
+    int8 measure_iaq(Context &result);
+    int8 get_iaq_baseline(Context &result);
+
+    int8 set_iaq_baseline(uint8 *baseline, size_t len);
+    template <size_t N>
+    int8 set_iaq_baseline(uint8 (&baseline)[N]) {
+        return set_iaq_baseline(baseline, N);
+    }
+    
+    int8 set_absolute_humidity(uint8 *humidity, size_t len);
+    template <size_t N>
+    int8 set_absolute_humidity(uint8 (&humidity)[N]) {
+        return set_absolute_humidity(humidity, N);
+    }
+
+    int8 measure_test(Context &result);
+    int8 feature_set(Context &result);
+    int8 measure_raw(Context &result);
+    int8 get_tvoc_inceptive_baseline(Context &result);
+
+    int8 set_tvoc_baseline(uint8 *baseline, size_t len);
+    template <size_t N>
+    int8 set_tvoc_baseline(uint8 (&baseline)[N]) {
+        return set_tvoc_baseline(baseline, N);
+    }
+
+    int8 soft_reset();
+    int8 get_serial_number(Context &result);
 
 private:
     hkk::bus::I2C &i2c;
-    Config cfg;
+    const Config cfg;
+
+    int8 read_raw_data(uint8 *data, size_t len);
 };
 
 }
