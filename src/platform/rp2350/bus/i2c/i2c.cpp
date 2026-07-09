@@ -239,13 +239,9 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
     }
 
-    switch(written) {
-        case PICO_ERROR_GENERIC:
-            HERROR("[I2C    ] Address not acknowledged or device not present");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
-        default:
-            HERROR("[I2C    ] Write failed");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
+    if(written == PICO_ERROR_GENERIC) {
+        HERROR("[I2C    ] Address not acknowledged or device not present");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
     }
 
     if(static_cast<size_t>(written) != len) {
@@ -307,13 +303,9 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
     }
 
-    switch(read) {
-        case PICO_ERROR_GENERIC:
-            HERROR("[I2C    ] Address not acknowledged or device not present");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
-        default:
-            HERROR("[I2C    ] Read failed");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
+    if(read == PICO_ERROR_GENERIC) {
+        HERROR("[I2C    ] Address not acknowledged or device not present");
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NO_ACK);
     }
 
     if(static_cast<size_t>(read) != len) {
@@ -382,9 +374,6 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
         case PICO_ERROR_TIMEOUT:
             HERROR("[I2C    ] Timeout reached on write");
             return static_cast<int32>(hkk::bus::I2C_ERROR_TIMEOUT);
-        default:
-            HERROR("[I2C    ] Write failed");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_WRITE_FAILED);
     }
 
     if(static_cast<size_t>(written) != len) {
@@ -454,9 +443,6 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
         case PICO_ERROR_TIMEOUT:
             HERROR("[I2C    ] Timeout reached on write");
             return static_cast<int32>(hkk::bus::I2C_ERROR_TIMEOUT);
-        default:
-            HERROR("[I2C    ] Read failed");
-            return static_cast<int32>(hkk::bus::I2C_ERROR_READ_FAILED);
     }
 
     if(static_cast<size_t>(read) != len) {
