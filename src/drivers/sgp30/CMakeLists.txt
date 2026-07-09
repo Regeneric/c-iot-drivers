@@ -4,7 +4,7 @@ add_library(hkk_drivers_sgp30
         commands.cpp
 )
 
-add_library(hkk::drivers_sgp30 ALIAS hkk_drivers_sgp30)
+add_library(hkk::drivers::sgp30 ALIAS hkk_drivers_sgp30)
 
 target_include_directories(hkk_drivers_sgp30 
     PUBLIC
