@@ -1,6 +1,8 @@
 #pragma once
 #include <hkk/defines.h>
 
+#include <hkk/drivers/sgp30/model.hpp>
+
 namespace hkk::sgp30 {
 
 #define DATA_FRAME_LENGTH       ((size_t)6)
