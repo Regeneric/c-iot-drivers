@@ -9,6 +9,45 @@
 
 namespace hkk::sgp30 {
 
+int8 SGP30::setup(uint8 *baseline, size_t len) {
+    HTRACE("sgp30.cpp -> SGP30::init(uint8*, size_t):int8");
+
+    if(!baseline) {
+        HERROR("[SGP30  ] Null data pointer passed to function");
+        return SGP30_ERROR_NULL_DATA;
+    }
+
+    if(len == 0) {
+        HERROR("[SGP30  ] Data length is 0");
+        return SGP30_ERROR_ZERO_LENGTH;
+    } 
+
+    if(len > HALF_DATA_FRAME_LENGTH) {
+        HERROR("[SGP30  ] Data length out of bands");
+        return SGP30_ERROR_OOB;
+    }
+
+    int8 status = this->iaq_init();
+    if(status < SGP30_OK) return status;
+
+    status = this->set_iaq_baseline(baseline, len);
+    if(status < SGP30_OK) return status;
+
+    return SGP30_OK;
+}
+
+int8 SGP30::setup(void) {
+    HTRACE("sgp30.cpp -> SGP30::init(-):int8");
+
+    HWARN("[SGP30  ] No IAQ baseline provided");
+    HWARN("[SGP30  ] Performing a cold start");
+
+    int8 status = this->iaq_init();
+    if(status < SGP30_OK) return status;
+
+    return SGP30_OK;
+}
+
 int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
     HTRACE("sgp30.cpp -> crc_calculate(uint8&, uint8*, size_t):int8");
 

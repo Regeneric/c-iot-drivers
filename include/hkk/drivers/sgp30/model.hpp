@@ -41,7 +41,7 @@ enum Result : int8 {
     SGP30_ERROR_WRITE_FAILED        = -3,
     SGP30_ERROR_I2C                 = -4,
     SGP30_ERROR_I2C_TRANSACTION     = -5,
-    // 
+    SGP30_ERROR_SENSOR_DISABLED     = -6,
     SGP30_ERROR_READ_FAILED         = -7,
     SGP30_ERROR_DEVICE_NOT_FOUND    = -8,
     SGP30_ERROR_TIMEOUT             = -9,
@@ -77,8 +77,8 @@ struct Config {
     bool8       use_dht;
     bool8       use_bme;
     uint8       address;
-    const char  *name;
-    const char  *location;
+    const char  *name = nullptr;
+    const char  *location = nullptr;
 };
 
 }
