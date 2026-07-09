@@ -3,7 +3,7 @@
 
 namespace hkk::sgp30 {
 
-enum class Command : uint16 {
+enum Command : uint16 {
     SoftReset                = 0x0006,
     IaqInit                  = 0x2003,
     MeasureIaq               = 0x2008,
@@ -18,15 +18,50 @@ enum class Command : uint16 {
     GetSerialId              = 0x3682,
 };
 
-enum class CRC : uint8 {
+enum CRC : uint8 {
     Mask  = 0x31,
     Base  = 0xFF,
     Msbit = 0x80,
 };
 
-enum class Measure : uint16 {
+enum Measure : uint16 {
     Test       = 0xD400,
     FeatureSet = 0x0022,
+};
+
+enum Result : int8 {
+    SGP30_OK                        =  0,
+    SGP30_ERROR_NULL_CONTEXT        = -1,
+    SGP30_ERROR_NULL_INSTANCE       = -2,
+    SGP30_ERROR_WRITE_FAILED        = -3,
+    SGP30_ERROR_I2C                 = -4,
+    SGP30_ERROR_I2C_TRANSACTION     = -5,
+    SGP30_ERROR_WRITE_FAILED        = -6,
+    SGP30_ERROR_READ_FAILED         = -7,
+    SGP30_ERROR_DEVICE_NOT_FOUND    = -8,
+    SGP30_ERROR_TIMEOUT             = -9,
+    SGP30_ERROR_NULL_DATA           = -10,
+    SGP30_ERROR_GENERIC             = -100,
+    SGP30_FUNCTION_NOT_IMPLEMENTED  = -101,
+};
+
+class SGP30 {
+public:
+    explicit SGP30(
+        hkk::bus::I2C &i2c, 
+        const Config cfg) 
+    : i2c(i2c), 
+      cfg(cfg) 
+    {}
+
+    int8 init();
+    int8 send_command(Command command);
+
+    int8 iaq_init();
+
+private:
+    hkk::bus::I2C &i2c;
+    Config cfg;
 };
 
 }

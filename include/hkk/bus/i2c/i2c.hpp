@@ -6,6 +6,7 @@ namespace hkk::bus {
 
 struct I2C;
 struct I2C_Config_Context;
+struct I2C_Bus_Lock_State;
 
 // Implement only those present on your uC
 // Keep the rest empty
@@ -34,11 +35,54 @@ enum I2C_Result : int8 {
     I2C_ERROR_READ_FAILED        = -9,  
     I2C_ERROR_NOT_SUPPORTED      = -10, 
     I2C_ERROR_TIMEOUT            = -11,
+    I2C_ERROR_NULL_MUTEX         = -12,
+    I2C_ERROR_BUSY               = -13,
     I2C_ERROR_GENERIC            = -100,
     I2C_FUNCTION_NOT_IMPLEMENTED = -101,
 };
 
+
+class I2C_Transaction_Guard {
+private:
+    void *ctx;
+    void *owner;
+
+    int8 (*commit_fn)(void *ctx, void *owner) = nullptr;
+
+public:
+    int8 status;
+
+    // No copy allowed
+    I2C_Transaction_Guard(const I2C_Transaction_Guard&) = delete;
+    I2C_Transaction_Guard& operator=(const I2C_Transaction_Guard&) = delete;
+
+    I2C_Transaction_Guard(
+        void *ctx,
+        void *owner,
+        int8 (*commit_fn)(void *ctx, void *owner),
+        int8 status
+    ) : ctx(ctx),
+        owner(owner),
+        commit_fn(commit_fn),
+        status(status)
+    {}
+
+    ~I2C_Transaction_Guard() {
+        if(status == I2C_OK && commit_fn != nullptr && ctx != nullptr) {
+            commit_fn(ctx, owner);
+        }
+    }
+};
+
+struct I2C_Bus_Lock_State {
+    void *mutex = nullptr;
+    void *owner = nullptr;
+    bool8 active = false;
+};
+
 struct I2C_Config_Context {
+    I2C_Bus_Lock_State *transaction;
+    
     void *instance;
     uint32 baudrate = 100000;   // 100 kHz
     uint8 sda;
@@ -122,6 +166,18 @@ public:
         return write_timeout(addr, src, N, timeout_us, nostop);
     }
 
+
+    I2C_Transaction_Guard transaction(void *owner = nullptr) {
+        if(transaction_fn) {
+            int8 status = transaction_fn(ctx, owner);
+            return I2C_Transaction_Guard(ctx, owner, commit_fn, status);
+        } else {
+            return I2C_Transaction_Guard(ctx, owner, commit_fn, I2C_FUNCTION_NOT_IMPLEMENTED);
+        }
+    }
+    
+    int8 commit(void *owner = nullptr) {return commit_fn ? commit_fn(ctx, owner) : I2C_FUNCTION_NOT_IMPLEMENTED;};
+
 private:
     void *ctx = nullptr;
 
@@ -141,5 +197,9 @@ private:
 
     int32 (*write_timeout_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
     int32 (*read_timeout_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
+
+    int8 (*transaction_fn)(void *ctx, void *owner);
+    int8 (*commit_fn)(void *ctx, void *owner);
 };
+
 }  
