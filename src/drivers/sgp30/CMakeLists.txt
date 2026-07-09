@@ -1,3 +1,5 @@
+# src/drivers/sgp30/CMakeLists.txt
+
 add_library(hkk_drivers_sgp30 
     STATIC EXCLUDE_FROM_ALL
         sgp30.cpp
