@@ -3,7 +3,7 @@ add_library(hkk_utils_rp2350
         utils.cpp
 )
 
-add_library(hkk::utils_rp2350 ALIAS hkk_utils_rp2350)
+add_library(hkk::rp2350::utils ALIAS hkk_utils_rp2350)
 
 target_include_directories(hkk_utils_rp2350 
     PUBLIC
