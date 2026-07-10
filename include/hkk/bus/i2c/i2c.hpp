@@ -19,7 +19,8 @@ extern I2C I2C5;
 extern I2C I2C6;
 extern I2C I2C7;
 
-int8 bind(I2C &i2c, I2C_Config_Context &cfg);
+void bind(I2C &i2c, I2C_Config_Context &cfg);
+const char *rts(int8 status);
 
 
 enum I2C_Result : int8 {
@@ -39,6 +40,7 @@ enum I2C_Result : int8 {
     I2C_ERROR_BUSY               = -13,
     I2C_ERROR_GENERIC            = -100,
     I2C_FUNCTION_NOT_IMPLEMENTED = -101,
+    I2C_ERROR_UNKNOWN            = -102,
 };
 
 
@@ -187,7 +189,7 @@ public:
 private:
     void *ctx = nullptr;
 
-    friend int8 bind(I2C &i2c, I2C_Config_Context &cfg);
+    friend void bind(I2C &i2c, I2C_Config_Context &cfg);
 
     int8 (*init_fn)(void *ctx) = nullptr;
     int8 (*deinit_fn)(void *ctx) = nullptr;

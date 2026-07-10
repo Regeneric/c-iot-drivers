@@ -58,70 +58,6 @@ int8 SGP30::setup(void) {
     return SGP30_OK;
 }
 
-int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
-    HTRACE("sgp30.cpp -> crc_calculate(uint8&, uint8*, size_t):int8");
-
-    size_t data_frame_length = (HALF_DATA_FRAME_LENGTH - 1);
-    if(len == 0 || len > data_frame_length) {
-        HERROR("[SGP30  ] Data frame length invalid");
-        HERROR("[SGP30  ] Expected: %d", data_frame_length);
-        HERROR("[SGP30  ] Got     : %d", len);
-
-        return SGP30_ERROR_CRC;
-    }
-
-    uint8 crc   = Base; // 0b11111111
-    uint8 mask  = Mask; // 0b00110001
-    uint8 msbit = 0;
-
-    for(size_t i = 0; i != data_frame_length; ++i) {
-        crc = (crc ^ data[i]);
-        for(size_t j = 0; j != 8; ++j) {
-            msbit = (crc & Msbit);  // Most significant BIT
-            crc = (crc << 1);
-            if(msbit != 0) {
-                crc = (crc ^ mask); // XOR
-            }
-        }
-    }
-
-    checksum = crc;
-    HTRACE("[SGP30  ] Checksum calculated: %d", checksum);
-
-    return SGP30_OK;
-}
-
-int8 crc_validate(uint8 *data, size_t len) {
-    HTRACE("sgp30.cpp -> crc_validate(uint8*, size_t):int8");
-
-    size_t data_frame_length = HALF_DATA_FRAME_LENGTH;
-    if(len == 0 || len > data_frame_length) {
-        HERROR("[SGP30  ] Data frame length invalid");
-        HERROR("[SGP30  ] Expected: %d", data_frame_length);
-        HERROR("[SGP30  ] Got     : %d", len);
-
-        return SGP30_ERROR_CRC;
-    }
-
-    uint8 crc = 0;
-    uint8 sgp_crc = data[2];
-
-    int8 status = crc_calculate(crc, data, (len-1));
-    if(status < SGP30_OK) return status;
-
-    if(crc != sgp_crc) {
-        HWARN ("[SGP30  ] Checksum invalid");
-        HTRACE("[SGP30  ] Expected: 0x%X", sgp_crc);
-        HTRACE("[SGP30  ] Got: 0x%X", crc);
-
-        return SGP30_ERROR_CRC;
-    }
-
-    HTRACE("[SGP30  ] Checksum valid");
-    return SGP30_OK;
-}
-
-
 int8 SGP30::read_raw_data(uint8 *data, size_t len) {
     HTRACE("sgp30.cpp -> SGP30::read_raw_data(uint8*):int8");
 
@@ -300,5 +236,6 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
         return SGP30_OK;
     }
 }
+
 
 }

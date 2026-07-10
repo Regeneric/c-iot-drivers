@@ -560,7 +560,29 @@ static int8 commit_fn(void *ctx_raw, void *owner) {
 
 namespace hkk::bus {
 
-int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
+const char *rts(int8 status) {
+    switch(status) {
+        case I2C_OK:                        return "I2C_OK";    
+        case I2C_ERROR_NULL_CONTEXT:        return "I2C_ERROR_NULL_CONTEXT";     
+        case I2C_ERROR_NULL_INSTANCE:       return "I2C_ERROR_NULL_INSTANCE";    
+        case I2C_ERROR_NULL_DATA:           return "I2C_ERROR_NULL_DATA";        
+        case I2C_ERROR_ZERO_LENGTH:         return "I2C_ERROR_ZERO_LENGTH";      
+        case I2C_ERROR_NO_ACK:              return "I2C_ERROR_NO_ACK";           
+        case I2C_ERROR_PARTIAL_WRITE:       return "I2C_ERROR_PARTIAL_WRITE";    
+        case I2C_ERROR_WRITE_FAILED:        return "I2C_ERROR_WRITE_FAILED";     
+        case I2C_ERROR_PARTIAL_READ:        return "I2C_ERROR_PARTIAL_READ";     
+        case I2C_ERROR_READ_FAILED:         return "I2C_ERROR_READ_FAILED";        
+        case I2C_ERROR_NOT_SUPPORTED:       return "I2C_ERROR_NOT_SUPPORTED";      
+        case I2C_ERROR_TIMEOUT:             return "I2C_ERROR_TIMEOUT";           
+        case I2C_ERROR_NULL_MUTEX:          return "I2C_ERROR_NULL_MUTEX";        
+        case I2C_ERROR_BUSY:                return "I2C_ERROR_BUSY";              
+        case I2C_ERROR_GENERIC:             return "I2C_ERROR_GENERIC";            
+        case I2C_FUNCTION_NOT_IMPLEMENTED:  return "I2C_FUNCTION_NOT_IMPLEMENTED"; 
+        default:                            return "I2C_ERROR_UNKNOWN";
+    }
+}
+
+void bind(I2C &i2c, I2C_Config_Context &cfg) {
     HTRACE("i2c.cpp -> bind(I2C&, I2C_Config_Context&):int8");
 
     i2c.ctx = static_cast<hkk::bus::I2C_Config_Context*>(&cfg);
@@ -581,7 +603,6 @@ int8 bind(I2C &i2c, I2C_Config_Context &cfg) {
     i2c.commit_fn = hkk::rp2350::commit_fn;
 
     HDEBUG("[I2C    ] I2C instance bound to config context");
-    return I2C_OK;
 }
 
 static ::mutex_t i2c0_mutex;

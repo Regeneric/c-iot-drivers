@@ -51,6 +51,7 @@ enum Result : int8 {
     SGP30_ERROR_OOB                 = -13,
     SGP30_ERROR_GENERIC             = -100,
     SGP30_FUNCTION_NOT_IMPLEMENTED  = -101,
+    SGP30_ERROR_UNKNOWN             = -102
 };
 
 
