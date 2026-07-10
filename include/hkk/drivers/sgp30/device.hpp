@@ -56,6 +56,9 @@ public:
     int8 soft_reset();
     int8 get_serial_number(Context &result);
 
+    int8 compensate_humidity(float32 absolute_humidity);
+    int8 calibrate(Context &result);
+
 private:
     hkk::bus::I2C &i2c;
     const Config cfg;

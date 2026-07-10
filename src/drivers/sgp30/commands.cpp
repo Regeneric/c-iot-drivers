@@ -167,24 +167,26 @@ int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
         return SGP30_ERROR_ZERO_LENGTH;
     } 
 
-    if(len > HALF_DATA_FRAME_LENGTH) {
+    // We calculate CRC ourselves, so (HALF_DATA_FRAME_LENGTH - 1)
+    if(len > (HALF_DATA_FRAME_LENGTH - 1)) {
         HERROR("[SGP30  ] Data length out of bands");
         return SGP30_ERROR_OOB;
     }
 
-    int8 crc_status = crc_validate(humidity, len);
-    if(crc_status < SGP30_OK) return crc_status;
-
+    // TODO: data_frame() function to encapsulate this code block
+    uint8 crc = 0;
+    int8 status = crc_calculate(crc, humidity, len);
+    if(status < SGP30_OK) return status;
 
     uint8 data[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH];
     uint8 command[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(SetAbsoluteHumidity), hkk::utils::lsb(SetAbsoluteHumidity)};
 
     std::memcpy(data, command, COMMAND_FRAME_LENGTH);
-    std::memcpy((data + COMMAND_FRAME_LENGTH), humidity, HALF_DATA_FRAME_LENGTH);
+    std::memcpy((data + COMMAND_FRAME_LENGTH), humidity, len);
+    data[COMMAND_FRAME_LENGTH + len] = crc;
 
-    int8 status = this->send_payload(data);
+    status = this->send_payload(data);
     if(status < SGP30_OK) return status;
-
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);
@@ -362,16 +364,17 @@ int8 SGP30::set_tvoc_baseline(uint8 *baseline, size_t len) {
         return SGP30_ERROR_OOB;
     }
 
+    // TODO: data_frame() function to encapsulate this code block
     uint8 crc = 0;
     int8 status = crc_calculate(crc, baseline, len);
     if(status < SGP30_OK) return status;
 
-    uint8 data[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH];
+    uint8 data[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH];    
     uint8 command[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(Command::SetTvocBaseline), hkk::utils::lsb(Command::SetTvocBaseline)};
 
     std::memcpy(data, command, COMMAND_FRAME_LENGTH);
-    std::memcpy((data + COMMAND_FRAME_LENGTH), baseline, (HALF_DATA_FRAME_LENGTH - 1));
-    std::memcpy((data + (COMMAND_FRAME_LENGTH + (HALF_DATA_FRAME_LENGTH - 1))), &crc, 1);
+    std::memcpy((data + COMMAND_FRAME_LENGTH), baseline, len);
+    data[COMMAND_FRAME_LENGTH + len] = crc;
 
     status = this->send_payload(data);
     if(status < SGP30_OK) return status;

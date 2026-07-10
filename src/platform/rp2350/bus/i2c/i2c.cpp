@@ -188,7 +188,7 @@ static int32 get_index_fn(void *ctx_raw) {
         return static_cast<int32>(hkk::bus::I2C_ERROR_GENERIC);
     }
 
-    HDEBUG("[I2C    ] Current index: %d", index);
+    HTRACE("[I2C    ] Current I2C index: I2C%d", index);
     ctx->index = static_cast<int8>(index);
     
     return static_cast<int32>(ctx->index);
@@ -222,7 +222,7 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
         HERROR("[I2C    ] Null I2C mutex in context");
-        return hkk::bus::I2C_ERROR_NULL_MUTEX;
+        return static_cast<int32>(hkk::bus::I2C_ERROR_NULL_MUTEX);
     }
 
     auto *transaction = static_cast<hkk::bus::I2C_Bus_Lock_State*>(ctx->transaction);

@@ -15,4 +15,5 @@ target_include_directories(hkk_utils_rp2350
 target_link_libraries(hkk_utils_rp2350 
     PUBLIC
         pico_stdlib
+        hardware_gpio
 )

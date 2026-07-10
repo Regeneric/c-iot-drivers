@@ -6,6 +6,7 @@
 
 #include <hkk/drivers/sgp30/sgp30.hpp>
 
+#include <cstring>
 
 namespace hkk::sgp30 {
 
@@ -237,5 +238,63 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
     }
 }
 
+int8 SGP30::compensate_humidity(float32 absolute_humidity) {
+    HTRACE("sgp30.cpp -> SGP30::compensate_humidity(float32)");
+
+    if(!this->cfg.enable) {
+        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
+        return SGP30_ERROR_SENSOR_DISABLED;
+    }
+
+    if(!this->cfg.humid_compensation) {
+        HWARN("[SGP30  ] Humidity compensation for sensor on I2C%d bus is disabled in the config file", i2c.index());
+        return SGP30_ERROR_GENERIC;
+    }
+
+    // 8.8 format
+    uint16 humidity = static_cast<uint16>(absolute_humidity * 256.0f);
+    uint8 data[] = {hkk::utils::msb(humidity), hkk::utils::lsb(humidity)};
+
+    int8 status = this->set_absolute_humidity(data);
+    if(status < SGP30_OK) return status;
+
+    HDEBUG("[SGP30  ] Humidity compensation enabled");
+    HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
+    HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+
+    return SGP30_OK;
+}
+
+
+int8 SGP30::calibrate(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::calibrate(Context&):int8");
+
+    // TODO: function to encapsulate this code block
+    if(!this->cfg.enable) {
+        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
+        return SGP30_ERROR_SENSOR_DISABLED;
+    }
+
+    HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+    HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
+
+    int8 status = this->iaq_init();
+    if(status < SGP30_OK) return status;
+
+    // TODO: use timers so it's a non-blocking function
+    // status = hkk::utils::repeating_timer_ms(-1000, calibration_callback, NULL);
+    // if(status) HTRACE("[SGP30  ] Repeating timer started");
+    // else {
+    //     HERROR("[SGP30  ] Could not start repeating timer");
+    //     return SGP30_ERROR_GENERIC;
+    // }
+
+    status = this->measure_iaq(result);
+    if(status < SGP30_OK) {
+        HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+    }
+
+    return SGP30_OK;
+}
 
 }
