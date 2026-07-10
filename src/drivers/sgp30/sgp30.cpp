@@ -278,9 +278,6 @@ int8 SGP30::calibrate(Context &result) {
     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
     HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
 
-    int8 status = this->iaq_init();
-    if(status < SGP30_OK) return status;
-
     // TODO: use timers so it's a non-blocking function
     // status = hkk::utils::repeating_timer_ms(-1000, calibration_callback, NULL);
     // if(status) HTRACE("[SGP30  ] Repeating timer started");
@@ -289,7 +286,7 @@ int8 SGP30::calibrate(Context &result) {
     //     return SGP30_ERROR_GENERIC;
     // }
 
-    status = this->measure_iaq(result);
+    int8 status = this->measure_iaq(result);
     if(status < SGP30_OK) {
         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
     }
