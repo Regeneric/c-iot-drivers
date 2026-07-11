@@ -560,6 +560,13 @@ static int8 commit_fn(void *ctx_raw, void *owner) {
 
 namespace hkk::bus {
 
+#define PIN_SDA0 4
+#define PIN_SCL0 5
+
+#define PIN_SDA1 6
+#define PIN_SCL1 7
+
+
 const char *rts(int8 status) {
     switch(status) {
         case I2C_OK:                        return "I2C_OK";    
@@ -623,8 +630,8 @@ static I2C_Config_Context i2c0_default_config {
     .transaction = &i2c0_transaction,
     .instance = i2c0,
     .baudrate = 100000,
-    .sda = 4,
-    .scl = 5,
+    .sda = PIN_SDA0,
+    .scl = PIN_SCL0,
     .index = 0
 };
 
@@ -632,8 +639,8 @@ static I2C_Config_Context i2c1_default_config {
     .transaction = &i2c1_transaction,
     .instance = i2c1,
     .baudrate = 100000,
-    .sda = 6,
-    .scl = 7,
+    .sda = PIN_SDA1,
+    .scl = PIN_SCL1,
     .index = 1
 };
 

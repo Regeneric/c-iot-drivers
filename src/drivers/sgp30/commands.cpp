@@ -33,11 +33,7 @@ int8 SGP30::iaq_init(void) {
 
 int8 SGP30::measure_iaq(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_iaq(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
     
     int8 status = this->send_command(Command::MeasureIaq);
     if(status < SGP30_OK) return status;
@@ -70,11 +66,7 @@ int8 SGP30::measure_iaq(Context &result) {
 
 int8 SGP30::get_iaq_baseline(Context &result) {
     HTRACE("command.cpp -> SGP30::get_iaq_baseline(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::GetIaqBaseline);
     if(status < SGP30_OK) return status;
@@ -103,11 +95,7 @@ int8 SGP30::get_iaq_baseline(Context &result) {
 
 int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
     HTRACE("commands.cpp -> SGP30::set_iaq_baseline(uint8*, size_t):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!baseline) {
         HERROR("[SGP30  ] Null data pointer passed to function");
@@ -151,11 +139,7 @@ int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
 
 int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
     HTRACE("commands.cpp -> SGP30::set_absolute_humidity(uint8*, size_t):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!humidity) {
         HERROR("[SGP30  ] Null data pointer passed to function");
@@ -201,11 +185,7 @@ int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
 // Page 10 Measure Test
 int8 SGP30::measure_test(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_test(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::MeasureTest);
     if(status < SGP30_OK) return status;
@@ -238,11 +218,7 @@ int8 SGP30::measure_test(Context &result) {
 
 int8 SGP30::feature_set(Context &result) {
     HTRACE("commands.cpp -> SGP30::feature_set(Context &result):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::GetFeatureSet);
     if(status < SGP30_OK) return status;
@@ -275,11 +251,7 @@ int8 SGP30::feature_set(Context &result) {
 
 int8 SGP30::measure_raw(Context &result) {
     HTRACE("commands.cpp -> measure_raw(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::MeasureRaw);
     if(status < SGP30_OK) return status;
@@ -312,11 +284,7 @@ int8 SGP30::measure_raw(Context &result) {
 
 int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
     HTRACE("command.cpp -> SGP30::get_tvoc_inceptive_baseline(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::GetTvocInceptiveBaseline);
     if(status < SGP30_OK) return status;
@@ -342,11 +310,7 @@ int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
 
 int8 SGP30::set_tvoc_baseline(uint8 *baseline, size_t len) {
     HTRACE("commands.cpp -> SGP30::set_tvoc_baseline(uint8*, size_t):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!baseline) {
         HERROR("[SGP30  ] Null data pointer passed to function");
@@ -391,11 +355,7 @@ int8 SGP30::set_tvoc_baseline(uint8 *baseline, size_t len) {
 
 int8 SGP30::soft_reset(void) {
     HTRACE("commands.cpp -> SGP30::soft_reset(-):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::SoftReset);
     if(status < SGP30_OK) return status;
@@ -412,11 +372,7 @@ int8 SGP30::soft_reset(void) {
 
 int8 SGP30::get_serial_number(Context &result) {
     HTRACE("commands.cpp -> SGP30::get_serial_id(Context&):int8");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->send_command(Command::GetSerialId);
     if(status < SGP30_OK) return status;

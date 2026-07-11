@@ -12,6 +12,7 @@ namespace hkk::sgp30 {
 
 int8 SGP30::setup(uint8 *baseline, size_t len) {
     HTRACE("sgp30.cpp -> SGP30::init(uint8*, size_t):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!this->cfg.enable) {
         HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
@@ -44,6 +45,7 @@ int8 SGP30::setup(uint8 *baseline, size_t len) {
 
 int8 SGP30::setup(void) {
     HTRACE("sgp30.cpp -> SGP30::init(-):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!this->cfg.enable) {
         HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
@@ -61,6 +63,7 @@ int8 SGP30::setup(void) {
 
 int8 SGP30::read_raw_data(uint8 *data, size_t len) {
     HTRACE("sgp30.cpp -> SGP30::read_raw_data(uint8*):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!data) {
         HERROR("[SGP30  ] Null data pointer passed to function");
@@ -123,6 +126,7 @@ int8 SGP30::read_raw_data(uint8 *data, size_t len) {
 
 int8 SGP30::send_command(Command command) {
     HTRACE("sgp30.cpp -> SGP30::send_command(Command):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
     
     {
         auto tx = i2c.transaction(this);
@@ -178,6 +182,7 @@ int8 SGP30::send_command(Command command) {
 
 int8 SGP30::send_payload(uint8 *payload, size_t len) {
     HTRACE("sgp30.cpp -> SGP30::send_payload(uint8*):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!payload) {
         HERROR("[SGP30  ] Null data pointer passed to function");
@@ -240,11 +245,7 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
 
 int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     HTRACE("sgp30.cpp -> SGP30::compensate_humidity(float32)");
-
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(!this->cfg.humid_compensation) {
         HWARN("[SGP30  ] Humidity compensation for sensor on I2C%d bus is disabled in the config file", i2c.index());
@@ -265,32 +266,76 @@ int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     return SGP30_OK;
 }
 
+// int8 SGP30::data_frame(Command command, uint8 *data, size_t len) {
+//     HTRACE("sgp30.cpp -> SGP30::data_frame(uint8*, size_t):int8");
+//
+//     uint8 crc = 0;
+//     int8 status = crc_calculate(crc, data, len);
+//     if(status < SGP30_OK) return status;
+//
+//     uint8 payload[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH]; 
+//     uint8 cmd[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
+//
+//     std::memcpy(payload, cmd, COMMAND_FRAME_LENGTH);
+//     std::memcpy((payload + COMMAND_FRAME_LENGTH), data, len);
+//     payload[COMMAND_FRAME_LENGTH + len] = crc;
+//
+//     return SGP30_OK;
+// }
 
-int8 SGP30::calibrate(Context &result) {
-    HTRACE("sgp30.cpp -> SGP30::calibrate(Context&):int8");
 
-    // TODO: function to encapsulate this code block
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
+static Context calibration_result;
+
+bool8 calibration_callback(void *data) {
+    auto *self = static_cast<SGP30*>(data);
+    if(!self) return false;
+
+    if(calibration_result.calibrated == true) {
+        self->set_iaq_baseline(calibration_result.baseline);
+
+        HINFO("[SGP30  ] Sensor calibrated");
+        HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
+            calibration_result.baseline[0], calibration_result.baseline[1], 
+            calibration_result.baseline[2], calibration_result.baseline[3], 
+            calibration_result.baseline[4], calibration_result.baseline[5]);
+
+        return false;
     }
 
-    HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
-    HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
-
-    // TODO: use timers so it's a non-blocking function
-    // status = hkk::utils::repeating_timer_ms(-1000, calibration_callback, NULL);
-    // if(status) HTRACE("[SGP30  ] Repeating timer started");
-    // else {
-    //     HERROR("[SGP30  ] Could not start repeating timer");
-    //     return SGP30_ERROR_GENERIC;
-    // }
-
-    int8 status = this->measure_iaq(result);
+    int8 status = self->measure_iaq(calibration_result);
     if(status < SGP30_OK) {
         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+    } 
+
+    return true;
+}
+
+int8 calibrated_callback(void *data) {
+    calibration_result.calibrated = true;
+    return 0;
+}
+
+int8 SGP30::calibrate() {
+    HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+    HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+
+    int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), calibration_callback, this);
+    if(status) HTRACE("[SGP30  ] Repeating timer started");
+    else {
+        HERROR("[SGP30  ] Could not start repeating timer");
+        return SGP30_ERROR_GENERIC;
     }
 
+    status = hkk::utils::alarm_ms((12 * HOUR), calibrated_callback, NULL);
+    if(status) HTRACE("[SGP30  ] Alarm timer started");
+    else {
+        HERROR("[SGP30  ] Could not start alarm timer");
+        return SGP30_ERROR_GENERIC;
+    }
+
+    HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
     return SGP30_OK;
 }
 

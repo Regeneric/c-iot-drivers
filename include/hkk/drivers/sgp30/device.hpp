@@ -56,14 +56,21 @@ public:
     int8 soft_reset();
     int8 get_serial_number(Context &result);
 
-    int8 compensate_humidity(float32 absolute_humidity);
-    int8 calibrate(Context &result);
+    int8 compensate_humidity(float32 absolute_humidity);    
+    int8 calibrate();
 
 private:
     hkk::bus::I2C &i2c;
     const Config cfg;
 
+    int8 data_frame(Command command, uint8 *data, size_t len);
     int8 read_raw_data(uint8 *data, size_t len);
+    int8 sensor_enabled() {
+        if(!this->cfg.enable) {
+            HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
+            return SGP30_ERROR_SENSOR_DISABLED;
+        } else return SGP30_OK;
+    }
 };
 
 }

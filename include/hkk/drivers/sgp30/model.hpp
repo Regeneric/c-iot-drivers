@@ -61,6 +61,8 @@ struct Context {
     uint32 h2;
     uint32 c2h6o;
 
+    bool8  calibrated = false;
+
     uint8  tvoc_baseline[HALF_DATA_FRAME_LENGTH];
     uint8  measure_test[HALF_DATA_FRAME_LENGTH];
     uint8  feature_set[HALF_DATA_FRAME_LENGTH];
