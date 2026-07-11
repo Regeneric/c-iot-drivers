@@ -321,14 +321,14 @@ int8 SGP30::calibrate() {
 
     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
 
-    int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), calibration_callback, this);
+    int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
     if(status) HTRACE("[SGP30  ] Repeating timer started");
     else {
         HERROR("[SGP30  ] Could not start repeating timer");
         return SGP30_ERROR_GENERIC;
     }
 
-    status = hkk::utils::alarm_ms((12 * HOUR), calibrated_callback, NULL);
+    status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
     if(status) HTRACE("[SGP30  ] Alarm timer started");
     else {
         HERROR("[SGP30  ] Could not start alarm timer");
