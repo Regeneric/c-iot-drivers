@@ -315,28 +315,44 @@ int8 calibrated_callback(void *data) {
     return 0;
 }
 
-int8 SGP30::calibrate() {
-    HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
+// int8 SGP30::calibrate() {
+//     HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
+//     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+//     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+
+//     int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
+//     if(status) HTRACE("[SGP30  ] Repeating timer started");
+//     else {
+//         HERROR("[SGP30  ] Could not start repeating timer");
+//         return SGP30_ERROR_GENERIC;
+//     }
+
+//     status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
+//     if(status) HTRACE("[SGP30  ] Alarm timer started");
+//     else {
+//         HERROR("[SGP30  ] Could not start alarm timer");
+//         return SGP30_ERROR_GENERIC;
+//     }
+
+//     HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
+//     return SGP30_OK;
+// }
+
+int8 SGP30::calibrate(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::calibrate(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+    HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
 
-    int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
-    if(status) HTRACE("[SGP30  ] Repeating timer started");
-    else {
-        HERROR("[SGP30  ] Could not start repeating timer");
-        return SGP30_ERROR_GENERIC;
+    int8 status = this->measure_iaq(result);
+    if(status < SGP30_OK) {
+        HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
     }
 
-    status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
-    if(status) HTRACE("[SGP30  ] Alarm timer started");
-    else {
-        HERROR("[SGP30  ] Could not start alarm timer");
-        return SGP30_ERROR_GENERIC;
-    }
-
-    HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
     return SGP30_OK;
 }
+
 
 }
