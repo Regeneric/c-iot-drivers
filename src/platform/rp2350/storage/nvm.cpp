@@ -112,7 +112,6 @@ void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
 }
 
 
-
 // static ::mutex_t nvm0_mutex;
 // static LockState nvm0_transaction {
 //     .mutex = &nvm0_mutex,

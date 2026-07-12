@@ -572,10 +572,6 @@ static hkk::bus::i2c::BackendTable backend {
     .read_timeout_fn = read_timeout_fn
 };
 
-void bind(hkk::bus::i2c::I2C &i2c, hkk::bus::i2c::ConfigContext &cfg) {
-    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
-    hkk::bus::i2c::bind(i2c, cfg, backend);
-}
 
 }
 
@@ -739,10 +735,18 @@ void bind(I2C &i2c, ConfigContext &cfg, BackendTable &backend) {
     i2c.write_blocking_fn = backend.write_blocking_fn;
     i2c.read_blocking_fn  = backend.read_blocking_fn;
 
+    i2c.write_timeout_fn = backend.write_timeout_fn;
+    i2c.read_timeout_fn  = backend.read_timeout_fn;
+
     i2c.transaction_fn = transaction_fn;
     i2c.commit_fn = commit_fn;
 
     HDEBUG("[I2C    ] I2C instance bound to config context");
+}
+
+void bind(I2C &i2c, ConfigContext &cfg) {
+    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
+    bind(i2c, cfg, hkk::rp2350::i2c::backend);
 }
 
 static ::mutex_t i2c0_mutex;

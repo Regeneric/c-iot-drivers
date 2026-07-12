@@ -99,11 +99,14 @@ static hkk::storage::nvm::BackendTable backend {
     // .read_blocking_fn = read_blocking_fn,
 };
 
-void bind(hkk::storage::nvm::NVM &nvm, hkk::storage::nvm::ConfigContext &cfg) {
-    HTRACE("flash.cpp -> bind(NVM&, NVMConfigContext&):void");
-    hkk::storage::nvm::bind(nvm, cfg, backend);
-}
 }
 
 
+namespace hkk::storage::nvm {
 
+void bind(NVM &nvm, ConfigContext &cfg) {
+    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
+    bind(nvm, cfg, hkk::rp2350::flash::backend);
+}
+
+}

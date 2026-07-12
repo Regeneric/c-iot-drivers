@@ -11,6 +11,7 @@ struct ConfigContext;
 struct LockState;
 struct BackendTable;
 
+void bind(NVM &nvm, ConfigContext &cfg);
 void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend);
 const char *rts(int8 status);
 
