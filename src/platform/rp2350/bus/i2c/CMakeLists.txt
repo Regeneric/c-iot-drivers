@@ -14,4 +14,6 @@ target_link_libraries(hkk_bus_i2c_rp2350
     PUBLIC
         hardware_i2c
         hardware_gpio
+        
+        pico_mutex
 )

@@ -2,3 +2,4 @@
 
 add_subdirectory(bus)
 add_subdirectory(utils)
+add_subdirectory(storage)
