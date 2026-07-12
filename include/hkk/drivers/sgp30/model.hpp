@@ -3,10 +3,10 @@
 
 namespace hkk::sgp30 {
 
-#define DATA_FRAME_LENGTH       ((size_t)6)
-#define HALF_DATA_FRAME_LENGTH  ((size_t)DATA_FRAME_LENGTH / (size_t)2)
-#define JUMBO_DATA_FRAME_LENGTH (DATA_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH)
-#define COMMAND_FRAME_LENGTH    ((size_t)2)
+inline constexpr size_t DATA_FRAME_LENGTH       = (size_t)(6);
+inline constexpr size_t HALF_DATA_FRAME_LENGTH  = (DATA_FRAME_LENGTH / (size_t)(2));
+inline constexpr size_t JUMBO_DATA_FRAME_LENGTH = (DATA_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH); 
+inline constexpr size_t COMMAND_FRAME_LENGTH    = (size_t)(2);
 
 enum Command : uint16 {
     SoftReset                = 0x0006,

@@ -1,12 +1,13 @@
 #pragma once
 #include <hkk/defines.h>
 
+#include <hkk/logger/logger.h>
 
-namespace hkk::bus {   
+namespace hkk::bus::i2c {   
 
 class I2C;
-struct I2C_Config_Context;
-struct I2C_Bus_Lock_State;
+struct ConfigContext;
+struct LockState;
 
 // Implement only those present on your uC
 // Keep the rest empty
@@ -19,11 +20,11 @@ extern I2C I2C5;
 extern I2C I2C6;
 extern I2C I2C7;
 
-void bind(I2C &i2c, I2C_Config_Context &cfg);
+void bind(I2C &i2c, ConfigContext &cfg, BackendTable &backend);
 const char *rts(int8 status);
 
 
-enum I2C_Result : int8 {
+enum Result : int8 {
     I2C_OK                       =  0,
     I2C_ERROR_NULL_CONTEXT       = -1,
     I2C_ERROR_NULL_INSTANCE      = -2,
@@ -44,7 +45,7 @@ enum I2C_Result : int8 {
 };
 
 
-class I2C_Transaction_Guard {
+class TransactionGuard {
 private:
     void *ctx;
     void *owner;
@@ -55,10 +56,10 @@ public:
     int8 status;
 
     // No copy allowed
-    I2C_Transaction_Guard(const I2C_Transaction_Guard&) = delete;
-    I2C_Transaction_Guard& operator=(const I2C_Transaction_Guard&) = delete;
+    TransactionGuard(const TransactionGuard&) = delete;
+    TransactionGuard& operator=(const TransactionGuard&) = delete;
 
-    I2C_Transaction_Guard(
+    TransactionGuard(
         void *ctx,
         void *owner,
         int8 (*commit_fn)(void *ctx, void *owner),
@@ -69,7 +70,7 @@ public:
         status(status)
     {}
 
-    ~I2C_Transaction_Guard() {
+    ~TransactionGuard() {
         if(status == I2C_OK && commit_fn != nullptr && ctx != nullptr) {
             commit_fn(ctx, owner);
         } else {
@@ -78,28 +79,48 @@ public:
     }
 };
 
-struct I2C_Bus_Lock_State {
+struct LockState {
     void *mutex = nullptr;
     void *owner = nullptr;
     bool8 active = false;
 };
 
-struct I2C_Config_Context {
-    I2C_Bus_Lock_State *transaction;
+struct ConfigContext {
+    LockState *transaction;
     
     void *instance;
+
     uint32 baudrate = 100000;   // 100 kHz
     uint8 sda;
     uint8 scl;
     int8 index = -1;
+
     int8 status = I2C_OK;
 };
+
+struct BackendTable {
+    int8 (*init_fn)(void *ctx) = nullptr;
+    int8 (*deinit_fn)(void *ctx) = nullptr;
+    
+    int8  (*set_baudrate_fn)(void *ctx, uint32 value) = nullptr;
+    int32 (*get_baudrate_fn)(void *ctx) = nullptr;
+
+    int8  (*set_index_fn)(void *ctx, int8 value) = nullptr;
+    int32 (*get_index_fn)(void *ctx) = nullptr;
+
+    int32 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, bool8 nostop) = nullptr;
+    int32 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, bool8 nostop) = nullptr;
+
+    int32 (*write_timeout_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
+    int32 (*read_timeout_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop) = nullptr;
+};
+
 
 class I2C {
 public:
     I2C() = default;
     I2C(
-        I2C_Config_Context *cfg,
+        ConfigContext *cfg,
         int8  (*init_fn)(void *ctx),
         int8  (*deinit_fn)(void *ctx),
         int8  (*set_baudrate_fn)(void *ctx, uint32 value),
@@ -175,12 +196,12 @@ public:
     }
 
 
-    I2C_Transaction_Guard transaction(void *owner = nullptr) {
+    TransactionGuard transaction(void *owner = nullptr) {
         if(transaction_fn) {
             int8 status = transaction_fn(ctx, owner);
-            return I2C_Transaction_Guard(ctx, owner, commit_fn, status);
+            return TransactionGuard(ctx, owner, commit_fn, status);
         } else {
-            return I2C_Transaction_Guard(ctx, owner, commit_fn, I2C_FUNCTION_NOT_IMPLEMENTED);
+            return TransactionGuard(ctx, owner, commit_fn, I2C_FUNCTION_NOT_IMPLEMENTED);
         }
     }
     
@@ -189,7 +210,7 @@ public:
 private:
     void *ctx = nullptr;
 
-    friend void bind(I2C &i2c, I2C_Config_Context &cfg);
+    friend void bind(I2C &i2c, ConfigContext &cfg, BackendTable &backend);
 
     int8 (*init_fn)(void *ctx) = nullptr;
     int8 (*deinit_fn)(void *ctx) = nullptr;

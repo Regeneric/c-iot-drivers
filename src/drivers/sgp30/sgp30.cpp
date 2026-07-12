@@ -3,7 +3,6 @@
 #include <hkk/utils/utils.hpp>
 #include <hkk/logger/logger.h>
 #include <hkk/bus/i2c/i2c.hpp>
-
 #include <hkk/drivers/sgp30/sgp30.hpp>
 
 #include <cstring>
@@ -284,36 +283,36 @@ int8 SGP30::compensate_humidity(float32 absolute_humidity) {
 // }
 
 
-static Context calibration_result;
+// static Context calibration_result;
 
-bool8 calibration_callback(void *data) {
-    auto *self = static_cast<SGP30*>(data);
-    if(!self) return false;
+// bool8 calibration_callback(void *data) {
+//     auto *self = static_cast<SGP30*>(data);
+//     if(!self) return false;
 
-    if(calibration_result.calibrated == true) {
-        self->set_iaq_baseline(calibration_result.baseline);
+//     if(calibration_result.calibrated == true) {
+//         self->set_iaq_baseline(calibration_result.baseline);
 
-        HINFO("[SGP30  ] Sensor calibrated");
-        HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
-            calibration_result.baseline[0], calibration_result.baseline[1], 
-            calibration_result.baseline[2], calibration_result.baseline[3], 
-            calibration_result.baseline[4], calibration_result.baseline[5]);
+//         HINFO("[SGP30  ] Sensor calibrated");
+//         HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
+//             calibration_result.baseline[0], calibration_result.baseline[1], 
+//             calibration_result.baseline[2], calibration_result.baseline[3], 
+//             calibration_result.baseline[4], calibration_result.baseline[5]);
 
-        return false;
-    }
+//         return false;
+//     }
 
-    int8 status = self->measure_iaq(calibration_result);
-    if(status < SGP30_OK) {
-        HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
-    } 
+//     int8 status = self->measure_iaq(calibration_result);
+//     if(status < SGP30_OK) {
+//         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+//     } 
 
-    return true;
-}
+//     return true;
+// }
 
-int8 calibrated_callback(void *data) {
-    calibration_result.calibrated = true;
-    return 0;
-}
+// int8 calibrated_callback(void *data) {
+//     calibration_result.calibrated = true;
+//     return 0;
+// }
 
 // int8 SGP30::calibrate() {
 //     HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
@@ -346,13 +345,35 @@ int8 SGP30::calibrate(Context &result) {
     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
     HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
 
-    int8 status = this->measure_iaq(result);
-    if(status < SGP30_OK) {
-        HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+    while(FOREVER) {
+        int8 status = this->measure_iaq(result);
+        if(status < SGP30_OK) {
+            HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+        }
+
+        this->get_iaq_baseline(result);
+
+        HTRACE("[MAIN   ] eCO2    : %d", SGP30_0_Context.eco2);
+        HTRACE("[MAIN   ] TVOC    : %d", SGP30_0_Context.tvoc);
+        HTRACE("[MAIN   ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", SGP30_0_Context.baseline[0], SGP30_0_Context.baseline[1], SGP30_0_Context.baseline[2], SGP30_0_Context.baseline[3] ,SGP30_0_Context.baseline[4] ,SGP30_0_Context.baseline[5]);
+
+        hkk::utils::sleep_ms(1 * SECOND);
     }
 
     return SGP30_OK;
 }
 
+int8 SGP30::store_baseline(void) {
+    HTRACE("sgp30.cpp -> SGP30::store_baseline(-):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+    HWARN("[SGP30  ] No context provided; using sensor baseline");
+
+    Context result;
+    int8 status = this->get_iaq_baseline(result);
+    if(status < SGP30_OK) return status;
+
+    
+}
 
 }
