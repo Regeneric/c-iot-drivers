@@ -353,9 +353,9 @@ int8 SGP30::calibrate(Context &result) {
 
         this->get_iaq_baseline(result);
 
-        HTRACE("[MAIN   ] eCO2    : %d", SGP30_0_Context.eco2);
-        HTRACE("[MAIN   ] TVOC    : %d", SGP30_0_Context.tvoc);
-        HTRACE("[MAIN   ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", SGP30_0_Context.baseline[0], SGP30_0_Context.baseline[1], SGP30_0_Context.baseline[2], SGP30_0_Context.baseline[3] ,SGP30_0_Context.baseline[4] ,SGP30_0_Context.baseline[5]);
+        HTRACE("[MAIN   ] eCO2    : %d", result.eco2);
+        HTRACE("[MAIN   ] TVOC    : %d", result.tvoc);
+        HTRACE("[MAIN   ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", result.baseline[0], result.baseline[1], result.baseline[2], result.baseline[3] ,result.baseline[4] ,result.baseline[5]);
 
         hkk::utils::sleep_ms(1 * SECOND);
     }
@@ -373,7 +373,7 @@ int8 SGP30::store_baseline(void) {
     int8 status = this->get_iaq_baseline(result);
     if(status < SGP30_OK) return status;
 
-    
+    return SGP30_OK;
 }
 
 }

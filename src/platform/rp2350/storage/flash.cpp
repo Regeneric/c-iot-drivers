@@ -16,21 +16,6 @@ inline constexpr uint32 FLASH_PAGES_PER_SECTOR  = (FLASH_SECTOR_SIZE_B / FLASH_P
 inline constexpr uint32 FLASH_SECTORS_NUMBER    = 1;
 inline constexpr uint32 FLASH_STORAGE_OFFSET_B  = (PICO_FLASH_SIZE_BYTES - (FLASH_SECTORS_NUMBER * FLASH_SECTOR_SIZE_B));
 
-static hkk::storage::nvm::BackendTable backend {
-    .init_fn = init_fn,
-    .deinit_fn = deinit_fn,
-
-    .clear_sector_fn = clear_sector_fn,
-
-    .write_blocking_fn = write_blocking_fn,
-    .read_blocking_fn = read_blocking_fn,
-};
-
-void bind(hkk::storage::nvm::NVM &nvm, hkk::storage::nvm::ConfigContext &cfg) {
-    HTRACE("flash.cpp -> bind(NVM&, NVMConfigContext&):void");
-    hkk::storage::nvm::bind(nvm, cfg, backend);
-}
-
 
 static int8 deinit_fn(void *ctx_raw) {
     HTRACE("flash.cpp -> s:deinit_fn(void*):int8"); 
@@ -102,6 +87,22 @@ static int8 config_fn(void *ctx_raw) {
     return hkk::storage::nvm::NVM_OK;
 }
 
+
+
+static hkk::storage::nvm::BackendTable backend {
+    .init_fn = init_fn,
+    .deinit_fn = deinit_fn,
+
+    // .clear_sector_fn = clear_sector_fn,
+
+    // .write_blocking_fn = write_blocking_fn,
+    // .read_blocking_fn = read_blocking_fn,
+};
+
+void bind(hkk::storage::nvm::NVM &nvm, hkk::storage::nvm::ConfigContext &cfg) {
+    HTRACE("flash.cpp -> bind(NVM&, NVMConfigContext&):void");
+    hkk::storage::nvm::bind(nvm, cfg, backend);
+}
 }
 
 

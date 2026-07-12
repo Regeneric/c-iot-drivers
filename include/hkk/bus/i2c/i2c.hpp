@@ -21,6 +21,7 @@ extern I2C I2C5;
 extern I2C I2C6;
 extern I2C I2C7;
 
+extern void bind(I2C &i2c, ConfigContext &cfg);
 void bind(I2C &i2c, ConfigContext &cfg, BackendTable &backend);
 const char *rts(int8 status);
 

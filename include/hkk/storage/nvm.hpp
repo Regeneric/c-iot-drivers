@@ -23,7 +23,7 @@ enum Result : int8 {
     
     NVM_ERROR_GENERIC             = -100,
     NVM_FUNCTION_NOT_IMPLEMENTED  = -101,
-    NVM_FUNCTION_NOT_IMPLEMENTED             = -102,
+    NVM_ERROR_UNKNOWN             = -102,
 };
 
 
@@ -121,7 +121,7 @@ public:
     }
     template <size_t N>
     int32 write(uint8 addr, const uint8 (&src)[N]) {
-        return write(addr, src, N, nostop);
+        return write(addr, src, N);
     }
 
 
@@ -130,7 +130,7 @@ public:
     }
     template <size_t N>
     int32 read(uint8 addr, uint8 (&dst)[N]) {
-        return read(addr, dst, N, nostop);
+        return read(addr, dst, N);
     }
 
 
