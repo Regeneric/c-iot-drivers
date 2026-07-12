@@ -15,6 +15,7 @@ target_link_libraries(hkk_nvm_rp2350
     PUBLIC
         hardware_i2c
         hardware_gpio
+        hardware_flash
         
         pico_mutex
 )
