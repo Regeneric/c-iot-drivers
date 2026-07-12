@@ -351,7 +351,10 @@ int8 SGP30::calibrate(Context &result) {
             HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
         }
 
-        this->get_iaq_baseline(result);
+        status = this->get_iaq_baseline(result);
+        if(status < SGP30_OK) {
+            HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+        }
 
         HTRACE("[MAIN   ] eCO2    : %d", result.eco2);
         HTRACE("[MAIN   ] TVOC    : %d", result.tvoc);
