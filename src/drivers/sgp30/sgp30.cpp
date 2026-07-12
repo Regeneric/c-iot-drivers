@@ -77,42 +77,42 @@ int8 SGP30::read_raw_data(uint8 *data, size_t len) {
     {
         auto tx = i2c.transaction(this);
         switch(tx.status) {
-            case hkk::bus::I2C_OK: break;
+            case hkk::bus::i2c::I2C_OK: break;
 
-            case hkk::bus::I2C_ERROR_BUSY:               
+            case hkk::bus::i2c::I2C_ERROR_BUSY:               
                 return SGP30_ERROR_I2C_TRANSACTION;
             
-            case hkk::bus::I2C_ERROR_NULL_CONTEXT:       
-            case hkk::bus::I2C_ERROR_NULL_INSTANCE:      
-            case hkk::bus::I2C_ERROR_NULL_MUTEX:            
-            case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED: 
+            case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:       
+            case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:      
+            case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:            
+            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED: 
             default: 
                 return SGP30_ERROR_I2C;
         }
 
         int32 status = i2c.read(this->cfg.address, data, len);
 
-        if(status < hkk::bus::I2C_OK) {
+        if(status < hkk::bus::i2c::I2C_OK) {
             HERROR("[SGP30  ] Could not read data from device at address: 0x%02X", this->cfg.address);
 
             switch(status) {
-                case hkk::bus::I2C_OK: break;
+                case hkk::bus::i2c::I2C_OK: break;
 
-                case hkk::bus::I2C_ERROR_NO_ACK:        
+                case hkk::bus::i2c::I2C_ERROR_NO_ACK:        
                     return SGP30_ERROR_DEVICE_NOT_FOUND;
 
-                case hkk::bus::I2C_ERROR_NULL_DATA:
-                case hkk::bus::I2C_ERROR_ZERO_LENGTH:
+                case hkk::bus::i2c::I2C_ERROR_NULL_DATA:
+                case hkk::bus::i2c::I2C_ERROR_ZERO_LENGTH:
                     return SGP30_ERROR_NULL_DATA;
                 
-                case hkk::bus::I2C_ERROR_WRITE_FAILED:
-                case hkk::bus::I2C_ERROR_PARTIAL_WRITE: 
+                case hkk::bus::i2c::I2C_ERROR_WRITE_FAILED:
+                case hkk::bus::i2c::I2C_ERROR_PARTIAL_WRITE: 
                     return SGP30_ERROR_WRITE_FAILED;
                 
-                case hkk::bus::I2C_ERROR_NULL_CONTEXT:
-                case hkk::bus::I2C_ERROR_NULL_INSTANCE:
-                case hkk::bus::I2C_ERROR_NULL_MUTEX:
-                case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED:
+                case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:
+                case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:
+                case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:
+                case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
                 default:
                     return SGP30_ERROR_I2C;
             }
@@ -130,15 +130,15 @@ int8 SGP30::send_command(Command command) {
     {
         auto tx = i2c.transaction(this);
         switch(tx.status) {
-            case hkk::bus::I2C_OK: break;
+            case hkk::bus::i2c::I2C_OK: break;
 
-            case hkk::bus::I2C_ERROR_BUSY:               
+            case hkk::bus::i2c::I2C_ERROR_BUSY:               
                 return SGP30_ERROR_I2C_TRANSACTION;
             
-            case hkk::bus::I2C_ERROR_NULL_CONTEXT:       
-            case hkk::bus::I2C_ERROR_NULL_INSTANCE:      
-            case hkk::bus::I2C_ERROR_NULL_MUTEX:            
-            case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED: 
+            case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:       
+            case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:      
+            case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:            
+            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED: 
             default: 
                 return SGP30_ERROR_I2C;
         }
@@ -146,27 +146,27 @@ int8 SGP30::send_command(Command command) {
         const uint8 commands[] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
         int32 status = i2c.write(this->cfg.address, commands);
 
-        if(status < hkk::bus::I2C_OK) {
+        if(status < hkk::bus::i2c::I2C_OK) {
             HERROR("[SGP30  ] Could not write data to device at address: 0x%02X", this->cfg.address);
         
             switch(status) {
-                case hkk::bus::I2C_OK: break;
+                case hkk::bus::i2c::I2C_OK: break;
 
-                case hkk::bus::I2C_ERROR_NO_ACK:        
+                case hkk::bus::i2c::I2C_ERROR_NO_ACK:        
                     return SGP30_ERROR_DEVICE_NOT_FOUND;
 
-                case hkk::bus::I2C_ERROR_NULL_DATA:
-                case hkk::bus::I2C_ERROR_ZERO_LENGTH:
+                case hkk::bus::i2c::I2C_ERROR_NULL_DATA:
+                case hkk::bus::i2c::I2C_ERROR_ZERO_LENGTH:
                     return SGP30_ERROR_NULL_DATA;
                 
-                case hkk::bus::I2C_ERROR_WRITE_FAILED:
-                case hkk::bus::I2C_ERROR_PARTIAL_WRITE: 
+                case hkk::bus::i2c::I2C_ERROR_WRITE_FAILED:
+                case hkk::bus::i2c::I2C_ERROR_PARTIAL_WRITE: 
                     return SGP30_ERROR_WRITE_FAILED;
                 
-                case hkk::bus::I2C_ERROR_NULL_CONTEXT:
-                case hkk::bus::I2C_ERROR_NULL_INSTANCE:
-                case hkk::bus::I2C_ERROR_NULL_MUTEX:
-                case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED:
+                case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:
+                case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:
+                case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:
+                case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
                 default:
                     return SGP30_ERROR_I2C;
             }
@@ -196,42 +196,42 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
     {
         auto tx = i2c.transaction(this);
         switch(tx.status) {
-            case hkk::bus::I2C_OK: break;
+            case hkk::bus::i2c::I2C_OK: break;
 
-            case hkk::bus::I2C_ERROR_BUSY:               
+            case hkk::bus::i2c::I2C_ERROR_BUSY:               
                 return SGP30_ERROR_I2C_TRANSACTION;
             
-            case hkk::bus::I2C_ERROR_NULL_CONTEXT:       
-            case hkk::bus::I2C_ERROR_NULL_INSTANCE:      
-            case hkk::bus::I2C_ERROR_NULL_MUTEX:            
-            case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED: 
+            case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:       
+            case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:      
+            case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:            
+            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED: 
             default: 
                 return SGP30_ERROR_I2C;
         }
 
         int32 status = i2c.write(this->cfg.address, payload, len);
         
-        if(status < hkk::bus::I2C_OK) {
+        if(status < hkk::bus::i2c::I2C_OK) {
             HERROR("[SGP30  ] Could not write data to device at address: 0x%02X", this->cfg.address);
 
             switch(status) {
-                case hkk::bus::I2C_OK: break;
+                case hkk::bus::i2c::I2C_OK: break;
 
-                case hkk::bus::I2C_ERROR_NO_ACK:        
+                case hkk::bus::i2c::I2C_ERROR_NO_ACK:        
                     return SGP30_ERROR_DEVICE_NOT_FOUND;
 
-                case hkk::bus::I2C_ERROR_NULL_DATA:
-                case hkk::bus::I2C_ERROR_ZERO_LENGTH:
+                case hkk::bus::i2c::I2C_ERROR_NULL_DATA:
+                case hkk::bus::i2c::I2C_ERROR_ZERO_LENGTH:
                     return SGP30_ERROR_NULL_DATA;
                 
-                case hkk::bus::I2C_ERROR_WRITE_FAILED:
-                case hkk::bus::I2C_ERROR_PARTIAL_WRITE: 
+                case hkk::bus::i2c::I2C_ERROR_WRITE_FAILED:
+                case hkk::bus::i2c::I2C_ERROR_PARTIAL_WRITE: 
                     return SGP30_ERROR_WRITE_FAILED;
                 
-                case hkk::bus::I2C_ERROR_NULL_CONTEXT:
-                case hkk::bus::I2C_ERROR_NULL_INSTANCE:
-                case hkk::bus::I2C_ERROR_NULL_MUTEX:
-                case hkk::bus::I2C_FUNCTION_NOT_IMPLEMENTED:
+                case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:
+                case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:
+                case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:
+                case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
                 default:
                     return SGP30_ERROR_I2C;
             }

@@ -9,7 +9,7 @@ namespace hkk::sgp30 {
 
 class SGP30 {
 public:
-    SGP30(hkk::bus::I2C &i2c, const Config &cfg) : i2c(i2c), cfg(cfg) {}
+    SGP30(hkk::bus::i2c::I2C &i2c, const Config &cfg) : i2c(i2c), cfg(cfg) {}
 
     int8 setup(void);
     int8 setup(uint8 *data, size_t len);
@@ -63,7 +63,7 @@ public:
     int8 store_baseline(Context &result);
 
 private:
-    hkk::bus::I2C &i2c;
+    hkk::bus::i2c::I2C &i2c;
     const Config cfg;
 
     int8 data_frame(Command command, uint8 *data, size_t len);
