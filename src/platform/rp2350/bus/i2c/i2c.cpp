@@ -12,29 +12,6 @@ namespace hkk::rp2350::i2c {
 // https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#group_hardware_i2c
 
 
-static hkk::bus::i2c::BackendTable backend {
-    .init_fn = init_fn,
-    .deinit_fn = deinit_fn,
-
-    .set_baudrate_fn = set_baudrate_fn,
-    .get_baudrate_fn = get_baudrate_fn,
-
-    .set_index_fn = set_index_fn,
-    .get_index_fn = get_index_fn,
-
-    .write_blocking_fn = write_blocking_fn,
-    .read_blocking_fn = read_blocking_fn,
-
-    .write_timeout_fn = write_timeout_fn,
-    .read_timeout_fn = read_timeout_fn
-};
-
-void bind(hkk::bus::i2c::I2C &i2c, hkk::bus::i2c::ConfigContext &cfg) {
-    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
-    hkk::bus::i2c::bind(i2c, cfg, backend);
-}
-
-
 static int8 deinit_fn(void *ctx_raw) {
     HTRACE("i2c.cpp -> s:deinit_fn(void*):int8");
 
@@ -575,6 +552,29 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
+}
+
+
+static hkk::bus::i2c::BackendTable backend {
+    .init_fn = init_fn,
+    .deinit_fn = deinit_fn,
+
+    .set_baudrate_fn = set_baudrate_fn,
+    .get_baudrate_fn = get_baudrate_fn,
+
+    .set_index_fn = set_index_fn,
+    .get_index_fn = get_index_fn,
+
+    .write_blocking_fn = write_blocking_fn,
+    .read_blocking_fn = read_blocking_fn,
+
+    .write_timeout_fn = write_timeout_fn,
+    .read_timeout_fn = read_timeout_fn
+};
+
+void bind(hkk::bus::i2c::I2C &i2c, hkk::bus::i2c::ConfigContext &cfg) {
+    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
+    hkk::bus::i2c::bind(i2c, cfg, backend);
 }
 
 }

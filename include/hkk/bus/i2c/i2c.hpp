@@ -8,6 +8,7 @@ namespace hkk::bus::i2c {
 class I2C;
 struct ConfigContext;
 struct LockState;
+struct BackendTable;
 
 // Implement only those present on your uC
 // Keep the rest empty
