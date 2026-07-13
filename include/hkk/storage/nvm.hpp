@@ -96,17 +96,25 @@ public:
     NVM() = default;
     NVM(
         ConfigContext *cfg,
-        int8 (*init_fn)(void *ctx, bool8 clear_data),
-        int8 (*deinit_fn)(void *ctx),
-        int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number),
-        int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len),
-        int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len),
-        int8 (*transaction_fn)(void *ctx, void *owner),
-        int8 (*commit_fn)(void *ctx, void *owner)
+        int8   (*init_fn)(void *ctx, bool8 clear_data),
+        int8   (*deinit_fn)(void *ctx),
+        int8   (*clear_sector_fn)(void *ctx, int32 offset, size_t sectors_number),
+        int8   (*set_storage_offset_fn)(void *ctx, int32 offset),
+        uint32 (*get_storage_offset_fn)(void *ctx),
+        int8   (*set_sectors_number_fn)(void *ctx, int32 sectors),
+        uint32 (*get_sectors_number_fn)(void *ctx),
+        int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len),
+        int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len),
+        int8   (*transaction_fn)(void *ctx, void *owner),
+        int8   (*commit_fn)(void *ctx, void *owner)
     ) : ctx(cfg),
         init_fn(init_fn),
         deinit_fn(deinit_fn),
-        // clear_sector_fn(clear_sector_fn),
+        clear_sector_fn(clear_sector_fn),
+        set_storage_offset_fn(set_storage_offset_fn),
+        get_storage_offset_fn(get_storage_offset_fn),
+        set_sectors_number_fn(set_sectors_number_fn),
+        get_sectors_number_fn(get_sectors_number_fn),
         write_blocking_fn(write_blocking_fn),
         read_blocking_fn(read_blocking_fn),
         transaction_fn(transaction_fn),
@@ -122,9 +130,27 @@ public:
         return deinit_fn ? deinit_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
 
-    int8 clear(int32 offset, int32 sectors_number) {
+    int8 clear(int32 offset, size_t sectors_number) {
         return clear_sector_fn ? clear_sector_fn(ctx, offset, sectors_number) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
+    int8 clear() {
+        return clear(offset(), sectors());
+    }
+
+    int8 offset(int32 offset) {
+        return set_storage_offset_fn ? set_storage_offset_fn(ctx, offset) : NVM_FUNCTION_NOT_IMPLEMENTED;
+    }
+    uint32 offset() {
+        return get_storage_offset_fn ? get_storage_offset_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED; 
+    }
+
+    int8 sectors(int32 sectors) {
+        return set_sectors_number_fn ? set_sectors_number_fn(ctx, sectors) : NVM_FUNCTION_NOT_IMPLEMENTED;
+    }
+    uint32 sectors() {
+        return get_sectors_number_fn ? get_sectors_number_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED; 
+    }
+
 
     int8 write(int32 addr, const uint8 *src, size_t len) {
         return write_blocking_fn ? write_blocking_fn(ctx, addr, src, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
@@ -181,26 +207,38 @@ private:
 
     friend void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend);
 
-    int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
-    int8 (*deinit_fn)(void *ctx) = nullptr;
+    int8   (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
+    int8   (*deinit_fn)(void *ctx) = nullptr;
 
-    int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number) = nullptr;
+    int8   (*clear_sector_fn)(void *ctx, int32 offset, size_t sectors_number) = nullptr;
 
-    int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
-    int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
+    int8   (*set_storage_offset_fn)(void *ctx, int32 offset) = nullptr;
+    uint32 (*get_storage_offset_fn)(void *ctx) = nullptr;
 
-    int8 (*transaction_fn)(void *ctx, void *owner) = nullptr;
-    int8 (*commit_fn)(void *ctx, void *owner) = nullptr;
+    int8   (*set_sectors_number_fn)(void *ctx, int32 sectors) = nullptr;
+    uint32 (*get_sectors_number_fn)(void *ctx) = nullptr;
+
+    int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
+    int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
+
+    int8   (*transaction_fn)(void *ctx, void *owner) = nullptr;
+    int8   (*commit_fn)(void *ctx, void *owner) = nullptr;
 };
 
 struct BackendTable {
-    int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
-    int8 (*deinit_fn)(void *ctx) = nullptr;
+    int8   (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
+    int8   (*deinit_fn)(void *ctx) = nullptr;
 
-    int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number) = nullptr;
+    int8   (*clear_sector_fn)(void *ctx, int32 offset, size_t sectors_number) = nullptr;
+    
+    int8   (*set_storage_offset_fn)(void *ctx, int32 offset) = nullptr;
+    uint32 (*get_storage_offset_fn)(void *ctx) = nullptr;
 
-    int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
-    int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
+    int8   (*set_sectors_number_fn)(void *ctx, int32 sectors) = nullptr;
+    uint32 (*get_sectors_number_fn)(void *ctx) = nullptr;
+
+    int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
+    int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
 };
 
 }

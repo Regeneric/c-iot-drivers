@@ -300,6 +300,48 @@ int8 SGP30::calibrate(Context &result) {
     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
     HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
 
+    if(!this->cfg.nvm) {
+        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
+        return SGP30_ERROR_NVM;
+    }
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
+
+    {
+        auto tx = nvm->transaction(this);
+        switch(tx.status) {
+            case hkk::storage::nvm::NVM_OK: 
+                break;
+
+            case hkk::storage::nvm::NVM_ERROR_BUSY:               
+                return SGP30_ERROR_NVM_TRANSACTION;
+            
+            case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:          
+            case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:            
+            case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED: 
+            default: 
+                return SGP30_ERROR_NVM;
+        }
+
+        int8 status = nvm->clear(nvm->offset(), nvm->sectors());
+        if(status < hkk::storage::nvm::NVM_OK) {
+            HERROR("[SGP30  ] Could not write data to NVM storage");
+
+            switch(status) {
+                case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
+                case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
+                case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED:
+                default:
+                    return SGP30_ERROR_NVM;
+            }
+        }
+
+        HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+    }
+
+    HDEBUG("[SGP30  ] NVM store cleared");
+    HTRACE("[SGP30  ] NVM storage offset: %d bytes", nvm->offset());
+    HTRACE("[SGP30  ] NVM sector number : %d", nvm->sectors());
+
     while(FOREVER) {
         int8 status = this->measure_iaq(result);
         if(status < SGP30_OK) {

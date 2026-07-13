@@ -265,13 +265,56 @@ static int8 read_blocking_fn(void *ctx_raw, int32 addr, int32 page, uint8 *dst, 
     return ctx->status;
 }
 
+static int8 clear_sector_fn(void *ctx_raw, int32 offset, size_t sectors_number) {
+    HTRACE("flash.cpp -> s:clear_sector_fn(void*, int32, int32):int8");
+
+    if(!ctx_raw) {
+        HERROR("[FLASH  ] Null context passed to function");
+        return hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<hkk::storage::nvm::ConfigContext*>(ctx_raw);
+
+    if(!ctx->transaction || !ctx->transaction->mutex) {
+        HERROR("[FLASH  ] Null NVM mutex in context");
+
+        ctx->status = hkk::storage::nvm::NVM_ERROR_NULL_MUTEX;
+        return ctx->status;
+    }
+    auto *transaction = static_cast<hkk::storage::nvm::LockState*>(ctx->transaction);
+
+    uint32 interrupts = ::save_and_disable_interrupts();
+    size_t count = (static_cast<size_t>(ctx->sector_size) * sectors_number);
+
+    if(transaction->active == false) {
+        ::mutex_t *mutex = static_cast<::mutex_t*>(transaction->mutex);
+        ::mutex_enter_blocking(mutex);
+        transaction->active = true;
+
+        ::flash_range_erase(offset, count);
+
+        transaction->active = false;
+        ::mutex_exit(mutex);
+    } else {
+        ::flash_range_erase(offset, count);
+    }
+    ::restore_interrupts(interrupts);
+
+    HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
+    HTRACE("[FLASH  ] Sector size   : %d bytes", ctx->sector_size);
+    HTRACE("[FLASH  ] Sectors number: %d", sectors_number);
+
+    HINFO("[FLASH  ] Clear sector completed successfully");
+
+    ctx->status = hkk::storage::nvm::NVM_OK;
+    return ctx->status;
+}
 
 
 static hkk::storage::nvm::BackendTable backend {
     .init_fn = init_fn,
     .deinit_fn = deinit_fn,
 
-    // .clear_sector_fn = clear_sector_fn,
+    .clear_sector_fn = clear_sector_fn,
 
     .write_blocking_fn = write_blocking_fn,
     .read_blocking_fn  = read_blocking_fn,

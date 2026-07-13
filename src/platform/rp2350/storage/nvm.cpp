@@ -111,6 +111,61 @@ void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
 }
 
 
+static int8 set_storage_offset_fn(void *ctx_raw, int32 offset) {
+    HTRACE("nvm.cpp -> s:set_storage_offset_fn(void*, int32):int8");
+
+    if(!ctx_raw) {
+        HERROR("[NVM    ] Null context passed to function");
+        return NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<ConfigContext*>(ctx_raw);
+
+    ctx->storage_offset = static_cast<uint32>(offset);
+    HDEBUG("[NVM    ] Storage offset set to %d bytes", ctx->storage_offset);
+
+    return NVM_OK;
+}
+
+static uint32 get_storage_offset_fn(void *ctx_raw) {
+   HTRACE("nvm.cpp -> s:get_storage_offset_fn(void*):uint32"); 
+
+    if(!ctx_raw) {
+        HERROR("[NVM    ] Null context passed to function");
+        return static_cast<uint32>(NVM_ERROR_NULL_CONTEXT);
+    }
+    auto *ctx = static_cast<ConfigContext*>(ctx_raw);
+
+    return ctx->storage_offset;
+}
+
+static int8 set_sectors_number_fn(void *ctx_raw, int32 sectors) {
+    HTRACE("nvm.cpp -> s:set_sectors_number_fn(void*, int32):int8");
+
+    if(!ctx_raw) {
+        HERROR("[NVM    ] Null context passed to function");
+        return NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<ConfigContext*>(ctx_raw);
+
+    ctx->sectors_number = static_cast<uint32>(sectors);
+    HDEBUG("[NVM    ] Sectors number set to %d bytes", ctx->sectors_number);
+
+    return NVM_OK;
+}
+
+static uint32 get_sectors_number_fn(void *ctx_raw, int32 sectors) {
+    HTRACE("nvm.cpp -> s:get_sectors_number_fn(void*):uint32");
+
+    if(!ctx_raw) {
+        HERROR("[NVM    ] Null context passed to function");
+        return NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<ConfigContext*>(ctx_raw);
+
+    return ctx->sectors_number;
+}
+
+
 const char *rts(int8 status) {
     switch(status) {
         case NVM_OK:                        return "NVM_OK";                      
