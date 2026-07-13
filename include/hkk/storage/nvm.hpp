@@ -137,9 +137,16 @@ public:
     int8 read(uint8 addr, uint8 *dst, size_t len) {
         return read_blocking_fn ? read_blocking_fn(ctx, addr, dst, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
+    int8 read(uint8 *dst, size_t len) {
+        return read(0xFF, dst, len);
+    }
     template <size_t N>
     int8 read(uint8 addr, uint8 (&dst)[N]) {
         return read(addr, dst, N);
+    }
+    template <size_t N>
+    int8 read(uint8 (&dst)[N]) {
+        return read(0xFF, dst, N);
     }
 
 

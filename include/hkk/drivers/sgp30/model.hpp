@@ -58,8 +58,6 @@ enum Result : int8 {
 
 
 struct Context {
-    void *nvm = nullptr;
-
     uint32 tvoc;
     uint32 eco2;
     uint32 h2;
@@ -79,6 +77,8 @@ struct Context {
 
 
 struct Config {
+    void        *nvm = nullptr;
+
     bool8       enable; 
     bool8       humid_compensation;
     uint8       address;

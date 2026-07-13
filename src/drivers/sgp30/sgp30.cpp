@@ -374,11 +374,11 @@ int8 SGP30::store_baseline(Context &result) {
     int8 status = this->get_iaq_baseline(result);
     if(status < SGP30_OK) return status;
 
-    if(!result.nvm) {
+    if(!this->cfg.nvm) {
         HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
         return SGP30_ERROR_NVM;
     }
-    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(result.nvm);
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
 
     {
         auto tx = nvm->transaction(this);

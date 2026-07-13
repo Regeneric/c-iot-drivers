@@ -92,6 +92,7 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     return ctx->status;
 }
 
+//TODO: make use of addr
 static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_t len) {
     HTRACE("flash.cpp -> s:write_blocking_fn(void*, uint8, const uint8*, size_t):int32");
 
@@ -165,6 +166,10 @@ static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     return ctx->status;
 }
 
+//TODO: make use of addr
+static int8 read_blocking_fn(void *ctx, uint8 addr, uint8 *dst, size_t len) {
+    
+}
 
 
 
@@ -175,7 +180,7 @@ static hkk::storage::nvm::BackendTable backend {
     // .clear_sector_fn = clear_sector_fn,
 
     .write_blocking_fn = write_blocking_fn,
-    // .read_blocking_fn = read_blocking_fn,
+    .read_blocking_fn = read_blocking_fn,
 };
 
 }
