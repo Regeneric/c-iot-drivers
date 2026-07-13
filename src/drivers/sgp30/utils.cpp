@@ -60,8 +60,8 @@ int8 crc_validate(uint8 *data, size_t len) {
 
     if(crc != sgp_crc) {
         HWARN ("[SGP30  ] Checksum invalid");
-        HTRACE("[SGP30  ] Expected: 0x%X", sgp_crc);
-        HTRACE("[SGP30  ] Got: 0x%X", crc);
+        HTRACE("[SGP30  ] Expected: 0x%02X", sgp_crc);
+        HTRACE("[SGP30  ] Got: 0x%02X", crc);
 
         return SGP30_ERROR_CRC;
     }
