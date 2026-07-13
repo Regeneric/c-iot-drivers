@@ -368,7 +368,7 @@ int8 SGP30::calibrate(Context &result) {
 }
 
 int8 SGP30::store_baseline(Context &result) {
-    HTRACE("sgp30.cpp -> SGP30::store_baseline(-):int8");
+    HTRACE("sgp30.cpp -> SGP30::store_baseline(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = this->get_iaq_baseline(result);
@@ -383,7 +383,8 @@ int8 SGP30::store_baseline(Context &result) {
     {
         auto tx = nvm->transaction(this);
         switch(tx.status) {
-            case hkk::storage::nvm::NVM_OK: break;
+            case hkk::storage::nvm::NVM_OK: 
+                break;
 
             case hkk::storage::nvm::NVM_ERROR_BUSY:               
                 return SGP30_ERROR_NVM_TRANSACTION;
@@ -400,7 +401,6 @@ int8 SGP30::store_baseline(Context &result) {
             HERROR("[SGP30  ] Could not write data to NVM storage");
 
             switch(status) {
-                case hkk::storage::nvm::NVM_OK:
                 case hkk::storage::nvm::NVM_DATA_TRUNCATED:
                     break;
 
@@ -410,7 +410,7 @@ int8 SGP30::store_baseline(Context &result) {
 
                 case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
                 case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
-                case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
+                case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED:
                 default:
                     return SGP30_ERROR_NVM;
             }
@@ -419,6 +419,61 @@ int8 SGP30::store_baseline(Context &result) {
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
         return SGP30_OK;
     }
+}
+
+int8 SGP30::load_baseline(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::load_baseline(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+    if(!this->cfg.nvm) {
+        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
+        return SGP30_ERROR_NVM;
+    }
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
+
+    {
+        auto tx = nvm->transaction(this);
+        switch(tx.status) {
+            case hkk::storage::nvm::NVM_OK: 
+                break;
+
+            case hkk::storage::nvm::NVM_ERROR_BUSY:               
+                return SGP30_ERROR_NVM_TRANSACTION;
+            
+            case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:          
+            case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:            
+            case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED: 
+            default: 
+                return SGP30_ERROR_NVM;
+        }
+
+        int8 status = nvm->read(result.baseline);
+        if(status < hkk::storage::nvm::NVM_OK) {
+            HERROR("[SGP30  ] Could not read data from NVM storage");
+
+            switch(status) {
+                case hkk::storage::nvm::NVM_DATA_TRUNCATED:
+                    break;
+
+                case hkk::storage::nvm::NVM_ERROR_NULL_DATA:
+                case hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH:
+                    return SGP30_ERROR_NULL_DATA;
+
+                case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
+                case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
+                case hkk::storage::nvm::NVM_ERROR_OOB:
+                case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED:
+                default:
+                    return SGP30_ERROR_NVM;
+            }
+        }
+    }
+
+    int8 status = this->set_iaq_baseline(result.baseline);
+    if(status < SGP30_OK) return status;
+
+    HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+    return SGP30_OK;
 }
 
 }

@@ -111,30 +111,21 @@ void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
 }
 
 
-// static ::mutex_t nvm0_mutex;
-// static LockState nvm0_transaction {
-//     .mutex = &nvm0_mutex,
-//     .owner = nullptr,
-//     .active = false
-// };
-
-// static ::mutex_t nvm1_mutex;
-// static LockState nvm1_transaction {
-//     .mutex = &nvm1_mutex,
-//     .owner = nullptr,
-//     .active = false
-// };
-
-// static ConfigContext nvm0_default_config {
-//     .transaction = &nvm0_transaction
-// };
-
-// static ConfigContext nvm1_default_config {
-//     .transaction = &nvm1_transaction
-// };
-
-// NVM nvm0 {};
-// NVM nvm1 {};
-
+const char *rts(int8 status) {
+    switch(status) {
+        case NVM_OK:                        return "NVM_OK";                      
+        case NVM_ERROR_NULL_CONTEXT:        return "NVM_ERROR_NULL_CONTEXT";             
+        case NVM_ERROR_NULL_DATA:           return "NVM_ERROR_NULL_DATA";                    
+        case NVM_ERROR_ZERO_LENGTH:         return "NVM_ERROR_ZERO_LENGTH";        
+        case NVM_ERROR_GENERIC:             return "NVM_ERROR_GENERIC";
+        case NVM_FUNCTION_NOT_IMPLEMENTED:  return "NVM_FUNCTION_NOT_IMPLEMENTED"; 
+        case NVM_ERROR_NULL_MUTEX:          return "NVM_ERROR_NULL_MUTEX"; 
+        case NVM_ERROR_BUSY:                return "NVM_ERROR_BUSY"; 
+        case NVM_ERROR_UNKNOWN:             return "NVM_ERROR_UNKNOWN"; 
+        case NVM_DATA_TRUNCATED:            return "NVM_DATA_TRUNCATED";
+        case NVM_ERROR_OOB:                 return "NVM_ERROR_OOB"; 
+        default:                            return "NVM_ERROR_UNKNOWN";
+    }
+}
 
 }

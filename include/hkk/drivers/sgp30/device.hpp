@@ -60,6 +60,7 @@ public:
     int8 calibrate(Context &result);
     
     int8 store_baseline(Context &result);
+    int8 load_baseline(Context &result);
 
 private:
     hkk::bus::i2c::I2C &i2c;

@@ -3,6 +3,8 @@
 
 #include <hkk/logger/logger.h>
 
+#include <span>
+
 
 namespace hkk::storage::nvm {
 
@@ -17,17 +19,19 @@ const char *rts(int8 status);
 
 
 enum Result : int8 {
-    NVM_OK                        = 0,
+    NVM_OK                        =  0, 
     NVM_ERROR_NULL_CONTEXT        = -1,
     NVM_ERROR_NULL_MUTEX          = -2,
     NVM_ERROR_BUSY                = -3,
     NVM_ERROR_NULL_DATA           = -4,
     NVM_ERROR_ZERO_LENGTH         = -5,
+    NVM_ERROR_OOB                 = -6,
     
     NVM_ERROR_GENERIC             = -100,
     NVM_FUNCTION_NOT_IMPLEMENTED  = -101,
     NVM_ERROR_UNKNOWN             = -102,
     NVM_DATA_TRUNCATED            = -103,
+    NVM_NULL_ADDRESS              = -104,
 };
 
 
@@ -76,11 +80,12 @@ struct ConfigContext {
 
     void *instance;
 
-    uint32 sector_size;
-    // uint32 page_size;
-    uint32 pages_per_sector;
-    uint32 sectors_number;
-    uint32 storage_offset;
+    const uint32 page_size  = 0;
+    uint32 sector_size      = 0;
+    uint32 pages_per_sector = 0;
+    uint32 sectors_number   = 0;
+    uint32 storage_offset   = 0;
+    uint32 current_page     = 0;
 
     int8 status = NVM_OK;
 };
@@ -91,13 +96,13 @@ public:
     NVM() = default;
     NVM(
         ConfigContext *cfg,
-        int8  (*init_fn)(void *ctx, bool8 clear_data),
-        int8  (*deinit_fn)(void *ctx),
-        int8  (*clear_sector_fn)(void *ctx),
-        int8 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len),
-        int8 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len),
-        int8  (*transaction_fn)(void *ctx, void *owner),
-        int8  (*commit_fn)(void *ctx, void *owner)
+        int8 (*init_fn)(void *ctx, bool8 clear_data),
+        int8 (*deinit_fn)(void *ctx),
+        int8 (*clear_sector_fn)(void *ctx),
+        int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len),
+        int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len),
+        int8 (*transaction_fn)(void *ctx, void *owner),
+        int8 (*commit_fn)(void *ctx, void *owner)
     ) : ctx(cfg),
         init_fn(init_fn),
         deinit_fn(deinit_fn),
@@ -118,35 +123,42 @@ public:
     }
 
 
-    int8 write(uint8 addr, const uint8 *src, size_t len) {
+    int8 write(int32 addr, const uint8 *src, size_t len) {
         return write_blocking_fn ? write_blocking_fn(ctx, addr, src, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
     int8 write(const uint8 *src, size_t len) {
-        return write(0xFF, src, len);
+        return write(NVM_NULL_ADDRESS, src, len);
     }
     template <size_t N>
-    int8 write(uint8 addr, const uint8 (&src)[N]) {
+    int8 write(int32 addr, const uint8 (&src)[N]) {
         return write(addr, src, N);
     }
     template <size_t N>
     int8 write(const uint8 (&src)[N]) {
-        return write(0xFF, src, N);
+        return write(NVM_NULL_ADDRESS, src, N);
     }
 
 
-    int8 read(uint8 addr, uint8 *dst, size_t len) {
-        return read_blocking_fn ? read_blocking_fn(ctx, addr, dst, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
+    int8 read(int32 addr, int32 page, uint8 *dst, size_t len) {
+        return read_blocking_fn ? read_blocking_fn(ctx, addr, page, dst, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
+    }
+    int8 read(int32 addr, uint8 *dst, size_t len) {
+        return read(addr, 0, dst, len);
     }
     int8 read(uint8 *dst, size_t len) {
-        return read(0xFF, dst, len);
+        return read(NVM_NULL_ADDRESS, dst, len);
     }
     template <size_t N>
-    int8 read(uint8 addr, uint8 (&dst)[N]) {
-        return read(addr, dst, N);
+    int8 read(int32 addr, int32 page, uint8 (&dst)[N]) {
+        return read(addr, page, dst, N);
+    }
+    template <size_t N>
+    int8 read(int32 addr, uint8 (&dst)[N]) {
+        return read(addr, 0, dst, N);
     }
     template <size_t N>
     int8 read(uint8 (&dst)[N]) {
-        return read(0xFF, dst, N);
+        return read(NVM_NULL_ADDRESS, 0, dst, N);
     }
 
 
@@ -166,26 +178,26 @@ private:
 
     friend void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend);
 
-    int8  (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
-    int8  (*deinit_fn)(void *ctx) = nullptr;
+    int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
+    int8 (*deinit_fn)(void *ctx) = nullptr;
 
-    int8  (*clear_sector_fn)(void *ctx) = nullptr;
+    int8 (*clear_sector_fn)(void *ctx) = nullptr;
 
-    int8 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len) = nullptr;
-    int8 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len) = nullptr;
+    int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
+    int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
 
     int8 (*transaction_fn)(void *ctx, void *owner) = nullptr;
     int8 (*commit_fn)(void *ctx, void *owner) = nullptr;
 };
 
 struct BackendTable {
-    int8  (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
-    int8  (*deinit_fn)(void *ctx) = nullptr;
+    int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
+    int8 (*deinit_fn)(void *ctx) = nullptr;
 
-    int8  (*clear_sector_fn)(void *ctx) = nullptr;
+    int8 (*clear_sector_fn)(void *ctx) = nullptr;
 
-    int8 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len) = nullptr;
-    int8 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len) = nullptr;
+    int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
+    int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
 };
 
 }

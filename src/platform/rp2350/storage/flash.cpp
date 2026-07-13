@@ -8,18 +8,19 @@
 #include <pico/mutex.h>
 
 #include <cstring>
+#include <cmath>
 
 namespace hkk::rp2350::flash {
 
 // TODO: move it to config file
 inline constexpr uint32 FLASH_SECTOR_SIZE_B     = 4096;
-inline constexpr uint32 FLASH_PAGE_SIZE_B       = 256;
-inline constexpr uint32 FLASH_PAGES_PER_SECTOR  = (FLASH_SECTOR_SIZE_B / FLASH_PAGE_SIZE_B);
+// inline constexpr uint32 FLASH_PAGE_SIZE_B       = 256;
+// inline constexpr uint32 FLASH_PAGES_PER_SECTOR  = (FLASH_SECTOR_SIZE_B / FLASH_PAGE_SIZE_B);
 inline constexpr uint32 FLASH_SECTORS_NUMBER    = 1;
-inline constexpr uint32 FLASH_STORAGE_OFFSET_B  = (PICO_FLASH_SIZE_BYTES - (FLASH_SECTORS_NUMBER * FLASH_SECTOR_SIZE_B));
+// inline constexpr uint32 FLASH_STORAGE_OFFSET_B  = (PICO_FLASH_SIZE_BYTES - (FLASH_SECTORS_NUMBER * FLASH_SECTOR_SIZE_B));
 
 
-static uint8 current_page = 0;
+static uint8 current_page_g = 0;
 
 
 static int8 deinit_fn(void *ctx_raw) {
@@ -32,14 +33,13 @@ static int8 deinit_fn(void *ctx_raw) {
     auto *ctx = static_cast<hkk::storage::nvm::ConfigContext*>(ctx_raw);
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
-        HWARN("[FLASH  ] Null I2C mutex in context");
+        HWARN("[FLASH  ] Null NVM mutex in context");
         ctx->status = hkk::storage::nvm::NVM_ERROR_NULL_MUTEX;
     } else {
         ::mutex_exit(static_cast<::mutex_t*>(ctx->transaction->mutex));
     }
 
     ctx->sector_size        = 0;
-    // ctx->page_size          = 0;
     ctx->pages_per_sector   = 0;
     ctx->sectors_number     = 0;
     ctx->storage_offset     = 0;
@@ -51,7 +51,7 @@ static int8 deinit_fn(void *ctx_raw) {
 }
 
 static int8 init_fn(void *ctx_raw, bool8 clear_data) {
-    HTRACE("flash.cpp -> s:init_fn(void*):int8");
+    HTRACE("flash.cpp -> s:init_fn(void*, bool8 = false):int8");
 
     if(!ctx_raw) {
         HERROR("[FLASH  ] Null context passed to function");
@@ -60,7 +60,7 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     auto *ctx = static_cast<hkk::storage::nvm::ConfigContext*>(ctx_raw);
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
-        HERROR("[FLASH  ] Null I2C mutex in context");
+        HERROR("[FLASH  ] Null NVM mutex in context");
         
         deinit_fn(ctx_raw);
 
@@ -69,14 +69,18 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     }
     ::mutex_init(static_cast<::mutex_t*>(ctx->transaction->mutex));
 
-    ctx->sector_size        = FLASH_SECTOR_SIZE_B;
-    // ctx->page_size          = FLASH_PAGE_SIZE_B;
-    ctx->pages_per_sector   = FLASH_PAGES_PER_SECTOR;
-    ctx->sectors_number     = FLASH_SECTORS_NUMBER;
-    ctx->storage_offset     = FLASH_STORAGE_OFFSET_B;
+    if(ctx->page_size == 0) {
+        HERROR("[FLASH  ] Page size initialized with value of 0");
+        return hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH;
+    }
+
+    ctx->sector_size      = (ctx->sector_size      ? ctx->sector_size      : FLASH_SECTOR_SIZE_B);
+    ctx->pages_per_sector = (ctx->pages_per_sector ? ctx->pages_per_sector : (ctx->sector_size / ctx->page_size));
+    ctx->sectors_number   = (ctx->sectors_number   ? ctx->sectors_number   : FLASH_SECTORS_NUMBER);
+    ctx->storage_offset   = (ctx->storage_offset   ? ctx->storage_offset   : (PICO_FLASH_SIZE_BYTES - (ctx->sectors_number * ctx->sector_size)));
 
     HDEBUG("[FLASH  ] Sector size     : %d bytes", ctx->sector_size);
-    // HDEBUG("[FLASH  ] Page size       : %d bytes", ctx->page_size);
+    HDEBUG("[FLASH  ] Page size       : %d bytes", ctx->page_size);
     HDEBUG("[FLASH  ] Storage offset  : %d bytes", ctx->storage_offset);
     HDEBUG("[FLASH  ] Pages per sector: %d", ctx->pages_per_sector);
     HDEBUG("[FLASH  ] Sectors number  : %d", ctx->sectors_number);
@@ -92,9 +96,8 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     return ctx->status;
 }
 
-//TODO: make use of addr
-static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_t len) {
-    HTRACE("flash.cpp -> s:write_blocking_fn(void*, uint8, const uint8*, size_t):int32");
+static int8 write_blocking_fn(void *ctx_raw, int32 addr, const uint8 *src, size_t len) {
+    HTRACE("flash.cpp -> s:write_blocking_fn(void*, int32, const uint8*, size_t):int8");
 
     if(!ctx_raw) {
         HERROR("[FLASH  ] Null context passed to function");
@@ -116,49 +119,73 @@ static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
         return ctx->status;
     }
 
-
-    uint8 payload[FLASH_PAGE_SIZE_B];
-    std::memset(payload, 0xFF, FLASH_PAGE_SIZE_B);
-
-    if(len > 255) {
-        HWARN("[FLASH  ] Data length exceeds page size; truncating to %u bytes", FLASH_PAGE_SIZE_B);
+    if(len > (ctx->sector_size * ctx->sectors_number)) {
+        HERROR("[FLASH  ] Data length out of bands");
         
-        std::memcpy(payload, src, FLASH_PAGE_SIZE_B);
+        ctx->status = hkk::storage::nvm::NVM_ERROR_OOB;
+        return ctx->status;
+    }
+
+
+    uint8 payload[ctx->page_size];
+    std::memset(payload, 0xFF, ctx->page_size);
+
+    // TODO: pagination
+    if(len > ctx->page_size) {
+        HWARN("[FLASH  ] Data length exceeds page size; truncating to %u bytes", ctx->page_size);
+        
+        std::memcpy(payload, src, ctx->page_size);
         ctx->status = hkk::storage::nvm::NVM_DATA_TRUNCATED;
     } else {
         std::memcpy(payload, src, len);
         ctx->status = hkk::storage::nvm::NVM_OK;
     }
+    
 
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
-        HERROR("[FLASH  ] Null I2C mutex in context");
+        HERROR("[FLASH  ] Null NVM mutex in context");
 
         ctx->status = hkk::storage::nvm::NVM_ERROR_NULL_MUTEX;
-        return static_cast<int32>(ctx->status);
+        return ctx->status;
     }
     auto *transaction = static_cast<hkk::storage::nvm::LockState*>(ctx->transaction);
 
-    if(current_page >= FLASH_PAGES_PER_SECTOR) current_page = 0;
+    if(current_page_g >= ctx->pages_per_sector) current_page_g = 0;
     
-    uint32 offset = (ctx->storage_offset + (current_page * FLASH_PAGE_SIZE_B));
+    uint32 offset = ctx->storage_offset;
+    
+    if(addr == hkk::storage::nvm::NVM_NULL_ADDRESS) {
+        HTRACE("[FLASH  ] NVM storage address is NULL; using config value");
+        offset = static_cast<uint32>(ctx->storage_offset + (current_page_g * ctx->page_size));
+    } else {
+        offset = static_cast<uint32>(addr + (current_page_g * ctx->page_size));
+    }
+    
+    uint32 interrupts = ::save_and_disable_interrupts();
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(transaction->mutex);
         ::mutex_enter_blocking(mutex);
         transaction->active = true;
 
-        ::flash_range_program(offset, src, FLASH_PAGE_SIZE_B);
-        current_page++;
+        ::flash_range_program(offset, src, ctx->page_size);
+        current_page_g++;
 
         transaction->active = false;
         ::mutex_exit(mutex);
     } else {
-        ::flash_range_program(offset, src, FLASH_PAGE_SIZE_B);
-        current_page++;
+        ::flash_range_program(offset, src, ctx->page_size);
+        current_page_g++;
     }
+    ::restore_interrupts(interrupts);
 
-    HTRACE("[FLASH  ] First byte   : 0x%02X", payload[0]);
-    HTRACE("[FLASH  ] Last byte    : 0x%02X", payload[FLASH_PAGE_SIZE_B - 1]);
+    ctx->current_page = current_page_g;
+
+    HTRACE("[FLASH  ] First byte    : 0x%02X", payload[0]);
+    HTRACE("[FLASH  ] Last byte     : 0x%02X", payload[ctx->page_size - 1]);
+    HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
+    HTRACE("[FLASH  ] Current page  : %d", ctx->current_page);
+
 
     HINFO("[FLASH  ] Write completed successfully");
 
@@ -166,9 +193,69 @@ static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     return ctx->status;
 }
 
-//TODO: make use of addr
-static int8 read_blocking_fn(void *ctx, uint8 addr, uint8 *dst, size_t len) {
+static int8 read_blocking_fn(void *ctx_raw, int32 addr, int32 page, uint8 *dst, size_t len) {
+    HTRACE("flash.cpp -> s:read_blocking_fn(void*, int32, int32, const uint8*, size_t):int8");
+
+    if(!ctx_raw) {
+        HERROR("[FLASH  ] Null context passed to function");
+        return hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<hkk::storage::nvm::ConfigContext*>(ctx_raw);
+
+    if(!dst) {
+        HERROR("[FLASH  ] Null data pointer passed to function");
+        
+        ctx->status = hkk::storage::nvm::NVM_ERROR_NULL_DATA;
+        return ctx->status;
+    }
+
+    if(len == 0) {
+        HERROR("[FLASH  ] Data length is 0");
+
+        ctx->status = hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH;
+        return ctx->status;
+    }
+
+    if(len > (ctx->sector_size * ctx->sectors_number)) {
+        HERROR("[FLASH  ] Data length out of bands");
+        
+        ctx->status = hkk::storage::nvm::NVM_ERROR_OOB;
+        return ctx->status;
+    }
+
+    if(!ctx->transaction || !ctx->transaction->mutex) {
+        HERROR("[FLASH  ] Null NVM mutex in context");
+
+        ctx->status = hkk::storage::nvm::NVM_ERROR_NULL_MUTEX;
+        return ctx->status;
+    }
+    auto *transaction = static_cast<hkk::storage::nvm::LockState*>(ctx->transaction);
+
+    uint32 offset = ctx->storage_offset;
+    if(addr == hkk::storage::nvm::NVM_NULL_ADDRESS) {
+        HTRACE("[FLASH  ] NVM storage address is NULL; using config value");
+        offset = static_cast<uint32>(ctx->storage_offset + (page * ctx->page_size));
+    } else {
+        offset = static_cast<uint32>(addr + (page * ctx->page_size));
+    }
     
+
+    uint32 interrupts = ::save_and_disable_interrupts();
+
+    const uint8 *nvm_data = reinterpret_cast<uint8*>(XIP_BASE + offset);
+    std::memcpy(dst, nvm_data, len);
+
+    ::restore_interrupts(interrupts);
+
+    
+    HTRACE("[FLASH  ] First byte    : 0x%02X", nvm_data[0]);
+    HTRACE("[FLASH  ] Last byte     : 0x%02X", nvm_data[len - 1]);
+    HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
+
+    HINFO("[FLASH  ] Read completed successfully");
+
+    ctx->status = hkk::storage::nvm::NVM_OK;
+    return ctx->status;
 }
 
 
@@ -180,7 +267,7 @@ static hkk::storage::nvm::BackendTable backend {
     // .clear_sector_fn = clear_sector_fn,
 
     .write_blocking_fn = write_blocking_fn,
-    .read_blocking_fn = read_blocking_fn,
+    .read_blocking_fn  = read_blocking_fn,
 };
 
 }
@@ -189,7 +276,7 @@ static hkk::storage::nvm::BackendTable backend {
 namespace hkk::storage::nvm {
 
 void bind(NVM &nvm, ConfigContext &cfg) {
-    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
+    HTRACE("flash.cpp -> bind(NVM&, ConfigContext&):void");
     bind(nvm, cfg, hkk::rp2350::flash::backend);
 }
 
