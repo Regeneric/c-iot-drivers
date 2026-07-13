@@ -76,7 +76,7 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     ctx->storage_offset     = FLASH_STORAGE_OFFSET_B;
 
     HDEBUG("[FLASH  ] Sector size     : %d bytes", ctx->sector_size);
-    HDEBUG("[FLASH  ] Page size       : %d bytes", ctx->page_size);
+    // HDEBUG("[FLASH  ] Page size       : %d bytes", ctx->page_size);
     HDEBUG("[FLASH  ] Storage offset  : %d bytes", ctx->storage_offset);
     HDEBUG("[FLASH  ] Pages per sector: %d", ctx->pages_per_sector);
     HDEBUG("[FLASH  ] Sectors number  : %d", ctx->sectors_number);
@@ -120,7 +120,7 @@ static int8 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     std::memset(payload, 0xFF, FLASH_PAGE_SIZE_B);
 
     if(len > 255) {
-        HWARN("[FLASH  ] Data length exceeds page size; truncating to %u bytes", ctx->page_size);
+        HWARN("[FLASH  ] Data length exceeds page size; truncating to %u bytes", FLASH_PAGE_SIZE_B);
         
         std::memcpy(payload, src, FLASH_PAGE_SIZE_B);
         ctx->status = hkk::storage::nvm::NVM_DATA_TRUNCATED;

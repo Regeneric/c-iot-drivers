@@ -371,7 +371,6 @@ int8 SGP30::store_baseline(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::store_baseline(-):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
-    Context result;
     int8 status = this->get_iaq_baseline(result);
     if(status < SGP30_OK) return status;
 
@@ -418,8 +417,6 @@ int8 SGP30::store_baseline(Context &result) {
         }
 
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-        HTRACE("[SGP30  ] Command: 0x%04X", static_cast<uint16>(command));
-
         return SGP30_OK;
     }
 }
