@@ -55,7 +55,7 @@ int8 SGP30::measure_iaq(Context &result) {
     result.tvoc = ((static_cast<uint16>(data[3]) << 8) | static_cast<uint16>(data[4]));   // ((MSB << 8) | LSB)
     std::memcpy(result.raw_data, data, DATA_FRAME_LENGTH);
 
-    HDEBUG("[SGP30  ] Measure IAQ command sent");
+    HTRACE("[SGP30  ] Measure IAQ command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
     HTRACE("[SGP30  ] eCO2: %d", result.eco2);  // TODO: check if it's the final result
@@ -84,6 +84,7 @@ int8 SGP30::get_iaq_baseline(Context &result) {
     int8 crc_tvoc_status = crc_validate((data + 3), 3);     // data[3:6] - TVOC_MSB, TVOC_LSB, TVOC_CRC
     if(crc_tvoc_status < SGP30_OK) return crc_tvoc_status;
 
+    // 6 bytes: (eCO2_MSB, eCO2_LSB, eCO2_CRC, TVOC_MSB, TVOC_LSB, TVOC_CRC)
     std::memcpy(result.baseline, data, DATA_FRAME_LENGTH);
 
     HDEBUG("[SGP30  ] Get IAQ baseline command sent");
@@ -121,8 +122,10 @@ int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
     uint8 data[COMMAND_FRAME_LENGTH + DATA_FRAME_LENGTH];
     uint8 command[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(Command::SetIaqBaseline), hkk::utils::lsb(Command::SetIaqBaseline)};
 
+    // 6 bytes: (TVOC_MSB, TVOC_LSB, TVOC_CRC, eCO2_MSB, eCO2_LSB, eCO2_CRC)
     std::memcpy(data, command, COMMAND_FRAME_LENGTH);
-    std::memcpy((data + COMMAND_FRAME_LENGTH), baseline, DATA_FRAME_LENGTH);
+    std::memcpy((data + COMMAND_FRAME_LENGTH), (baseline + 3), HALF_DATA_FRAME_LENGTH);                             // data[3:6] - TVOC_MSB, TVOC_LSB, TVOC_CRC
+    std::memcpy((data + COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH), (baseline + 0), HALF_DATA_FRAME_LENGTH);    // data[0:2] - eCO2_MSB, eCO2_LSB, eCO2_CRC
     
     int8 status = this->send_payload(data);
     if(status < SGP30_OK) return status;
@@ -273,7 +276,7 @@ int8 SGP30::measure_raw(Context &result) {
     result.c2h6o = ((static_cast<uint16>(data[3]) << 8) | static_cast<uint16>(data[4]));   // ((MSB << 8) | LSB)
     std::memcpy(result.raw_data, data, DATA_FRAME_LENGTH);
 
-    HDEBUG("[SGP30  ] Measure raw command sent");
+    HTRACE("[SGP30  ] Measure raw command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
     HTRACE("[SGP30  ] eCO2: %d", result.h2);    // TODO: check if it's the final result

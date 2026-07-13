@@ -101,7 +101,6 @@ void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
     nvm.init_fn = backend.init_fn;
     nvm.deinit_fn = backend.deinit_fn;
 
-    nvm.config_fn = backend.config_fn;
     nvm.clear_sector_fn = backend.clear_sector_fn;
 
     nvm.write_blocking_fn = backend.write_blocking_fn;

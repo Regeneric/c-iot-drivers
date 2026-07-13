@@ -4,6 +4,7 @@
 #include <hkk/logger/logger.h>
 #include <hkk/bus/i2c/i2c.hpp>
 #include <hkk/drivers/sgp30/sgp30.hpp>
+#include <hkk/storage/nvm.hpp>
 
 #include <cstring>
 
@@ -366,17 +367,61 @@ int8 SGP30::calibrate(Context &result) {
     return SGP30_OK;
 }
 
-int8 SGP30::store_baseline(void) {
+int8 SGP30::store_baseline(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::store_baseline(-):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
-
-    HWARN("[SGP30  ] No context provided; using sensor baseline");
 
     Context result;
     int8 status = this->get_iaq_baseline(result);
     if(status < SGP30_OK) return status;
 
-    return SGP30_OK;
+    if(!result.nvm) {
+        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
+        return SGP30_ERROR_NVM;
+    }
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(result.nvm);
+
+    {
+        auto tx = nvm->transaction(this);
+        switch(tx.status) {
+            case hkk::storage::nvm::NVM_OK: break;
+
+            case hkk::storage::nvm::NVM_ERROR_BUSY:               
+                return SGP30_ERROR_NVM_TRANSACTION;
+            
+            case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:          
+            case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:            
+            case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED: 
+            default: 
+                return SGP30_ERROR_NVM;
+        }
+
+        int8 status = nvm->write(result.baseline);
+        if(status < hkk::storage::nvm::NVM_OK) {
+            HERROR("[SGP30  ] Could not write data to NVM storage");
+
+            switch(status) {
+                case hkk::storage::nvm::NVM_OK:
+                case hkk::storage::nvm::NVM_DATA_TRUNCATED:
+                    break;
+
+                case hkk::storage::nvm::NVM_ERROR_NULL_DATA:
+                case hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH:
+                    return SGP30_ERROR_NULL_DATA;
+
+                case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
+                case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
+                case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
+                default:
+                    return SGP30_ERROR_NVM;
+            }
+        }
+
+        HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+        HTRACE("[SGP30  ] Command: 0x%04X", static_cast<uint16>(command));
+
+        return SGP30_OK;
+    }
 }
 
 }

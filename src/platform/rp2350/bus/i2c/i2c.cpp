@@ -264,13 +264,13 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 
     int32 written = PICO_ERROR_GENERIC;
     if(transaction->active == false) {
-        ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
+        ::mutex_t *mutex = static_cast<::mutex_t*>(transaction->mutex);
         ::mutex_enter_blocking(mutex);
         transaction->active = true;
         
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
 
-        transaction->active = true;
+        transaction->active = false;
         ::mutex_exit(mutex);
     } else {
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
@@ -350,7 +350,7 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
         
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
 
-        transaction->active = true;
+        transaction->active = false;
         ::mutex_exit(mutex);
     } else {
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
@@ -430,7 +430,7 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
         
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
 
-        transaction->active = true;
+        transaction->active = false;
         ::mutex_exit(mutex);
     } else {
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
@@ -517,7 +517,7 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
         
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
 
-        transaction->active = true;
+        transaction->active = false;
         ::mutex_exit(mutex);
     } else {
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);

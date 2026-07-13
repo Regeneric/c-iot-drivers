@@ -49,6 +49,8 @@ enum Result : int8 {
     SGP30_ERROR_CRC                 = -11,
     SGP30_ERROR_ZERO_LENGTH         = -12,
     SGP30_ERROR_OOB                 = -13,
+    SGP30_ERROR_NVM                 = -14,
+    SGP30_ERROR_NVM_TRANSACTION     = -15,
     SGP30_ERROR_GENERIC             = -100,
     SGP30_FUNCTION_NOT_IMPLEMENTED  = -101,
     SGP30_ERROR_UNKNOWN             = -102
@@ -56,6 +58,8 @@ enum Result : int8 {
 
 
 struct Context {
+    void *nvm = nullptr;
+
     uint32 tvoc;
     uint32 eco2;
     uint32 h2;

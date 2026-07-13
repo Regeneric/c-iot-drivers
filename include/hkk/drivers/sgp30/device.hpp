@@ -59,7 +59,6 @@ public:
     int8 compensate_humidity(float32 absolute_humidity);    
     int8 calibrate(Context &result);
     
-    int8 store_baseline(void);
     int8 store_baseline(Context &result);
 
 private:
