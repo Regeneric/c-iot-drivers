@@ -378,38 +378,46 @@ int8 SGP30::store_baseline(Context &result) {
 
     {
         auto tx = nvm->transaction(this);
-        switch(tx.status) {
-            case hkk::storage::nvm::NVM_OK: 
-                break;
+        if(tx.status < hkk::storage::nvm::NVM_OK) {
+            return this->validate_error(tx.status);
+        }
 
-            case hkk::storage::nvm::NVM_ERROR_BUSY:               
-                return SGP30_ERROR_NVM_TRANSACTION;
-            
-            case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:          
-            case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:            
-            case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED: 
-            default: 
-                return SGP30_ERROR_NVM;
+        uint8 baseline[DATA_FRAME_LENGTH];
+        int8  crc_status = SGP30_ERROR_GENERIC;
+
+        // Clear whole sector if the page number is 0
+        // It means that either it's a cold start or we got to the end of a sector
+        // We check for previous stored baseline, if there is any, and carry it on 
+        if(nvm->page() == 0) {
+            for(int8 page; page != nvm->page(); ++page) {
+                int8 status = nvm->read(hkk::storage::nvm::NVM_NULL_ADDRESS, page, baseline, DATA_FRAME_LENGTH);
+                if(status < hkk::storage::nvm::NVM_OK) {
+                    return this->validate_error(status);
+                }
+
+                int8 crc_eco2 = crc_validate((baseline + 0), HALF_DATA_FRAME_LENGTH);
+                int8 crc_tvoc = crc_validate((baseline + 3), HALF_DATA_FRAME_LENGTH);
+
+                if(crc_eco2 == SGP30_OK && crc_tvoc == SGP30_OK) {
+                    crc_status = SGP30_OK;
+                    break;
+                }
+            }
+
+            if(crc_status < SGP30_OK) HWARN("[SGP30  ] No IAQ baseline stored in NVM storage");
+            if(crc_status == SGP30_OK) {
+                std::memcpy(result.baseline, baseline, DATA_FRAME_LENGTH);
+            }
+
+            int8 status = nvm->clear(nvm->offset(), nvm->sectors());
+            if(status < hkk::storage::nvm::NVM_OK) {
+                return this->validate_error(status);
+            }
         }
 
         int8 status = nvm->write(result.baseline);
         if(status < hkk::storage::nvm::NVM_OK) {
-            HERROR("[SGP30  ] Could not write data to NVM storage");
-
-            switch(status) {
-                case hkk::storage::nvm::NVM_DATA_TRUNCATED:
-                    break;
-
-                case hkk::storage::nvm::NVM_ERROR_NULL_DATA:
-                case hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH:
-                    return SGP30_ERROR_NULL_DATA;
-
-                case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
-                case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
-                case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED:
-                default:
-                    return SGP30_ERROR_NVM;
-            }
+            return this->validate_error(status);
         }
 
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
@@ -472,6 +480,65 @@ int8 SGP30::load_baseline(Context &result) {
     return SGP30_OK;
 }
 
+int8 SGP30::validate_error(int8 error) {
+    HTRACE("sgp30.cpp -> SGP30::validate_error(int8):int8");
+
+    if(error < hkk::storage::nvm::NVM_OK) {
+        HERROR("[SGP30  ] Could not write data to NVM storage");
+        switch(error) {
+            case hkk::storage::nvm::NVM_OK:
+                break;
+
+            case hkk::storage::nvm::NVM_DATA_TRUNCATED:
+            case hkk::storage::nvm::NVM_NULL_ADDRESS:
+            case hkk::storage::nvm::NVM_ERROR_BUSY:
+                return SGP30_ERROR_NVM_TRANSACTION;
+
+            case hkk::storage::nvm::NVM_ERROR_NULL_DATA:
+            case hkk::storage::nvm::NVM_ERROR_ZERO_LENGTH:
+                return SGP30_ERROR_NULL_DATA;
+
+            case hkk::storage::nvm::NVM_ERROR_NULL_CONTEXT:
+            case hkk::storage::nvm::NVM_ERROR_NULL_MUTEX:
+            case hkk::storage::nvm::NVM_ERROR_OOB:
+            case hkk::storage::nvm::NVM_ERROR_GENERIC:
+            case hkk::storage::nvm::NVM_ERROR_UNKNOWN:
+            case hkk::storage::nvm::NVM_FUNCTION_NOT_IMPLEMENTED:
+                return SGP30_ERROR_NVM;
+        }
+    } 
+    
+    if(error < hkk::bus::i2c::I2C_OK) {
+        switch(error) {
+            case hkk::bus::i2c::I2C_OK:
+                break;
+
+            case hkk::bus::i2c::I2C_ERROR_NULL_DATA:
+            case hkk::bus::i2c::I2C_ERROR_ZERO_LENGTH:
+                return SGP30_ERROR_NULL_DATA;
+
+            case hkk::bus::i2c::I2C_ERROR_PARTIAL_WRITE:
+            case hkk::bus::i2c::I2C_ERROR_WRITE_FAILED:
+            case hkk::bus::i2c::I2C_ERROR_PARTIAL_READ:
+            case hkk::bus::i2c::I2C_ERROR_READ_FAILED:
+            case hkk::bus::i2c::I2C_ERROR_TIMEOUT:
+            case hkk::bus::i2c::I2C_ERROR_BUSY:
+                return SGP30_ERROR_I2C_TRANSACTION;
+
+            case hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT:
+            case hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE:
+            case hkk::bus::i2c::I2C_ERROR_NO_ACK:
+            case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:
+            case hkk::bus::i2c::I2C_ERROR_NOT_SUPPORTED:
+            case hkk::bus::i2c::I2C_ERROR_GENERIC:
+            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
+            case hkk::bus::i2c::I2C_ERROR_UNKNOWN:
+                return SGP30_ERROR_I2C;
+        }
+    }
+    
+    return SGP30_OK;
+}
 
 // int8 SGP30::data_frame(Command command, uint8 *data, size_t len) {
 //     HTRACE("sgp30.cpp -> SGP30::data_frame(uint8*, size_t):int8");

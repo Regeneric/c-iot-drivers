@@ -25,5 +25,4 @@ int8 crc_validate(uint8 (&data)[N]) {
 }
 
 const char *rts(int8 status);
-
 }

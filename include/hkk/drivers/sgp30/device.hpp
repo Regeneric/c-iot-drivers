@@ -74,6 +74,7 @@ private:
             return SGP30_ERROR_SENSOR_DISABLED;
         } else return SGP30_OK;
     }
+    int8 validate_error(int8 error);
 };
 
 }

@@ -93,23 +93,6 @@ static int8 commit_fn(void *ctx_raw, void *owner) {
     return ctx->status;
 }
 
-void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
-    HTRACE("nvm.cpp -> bind(NVM&, ConfigContext&, const BackendTable&):void");
-
-    nvm.ctx = static_cast<ConfigContext*>(&cfg);
-
-    nvm.init_fn = backend.init_fn;
-    nvm.deinit_fn = backend.deinit_fn;
-
-    nvm.clear_sector_fn = backend.clear_sector_fn;
-
-    nvm.write_blocking_fn = backend.write_blocking_fn;
-    nvm.read_blocking_fn = backend.read_blocking_fn;
-
-    nvm.transaction_fn = transaction_fn;
-    nvm.commit_fn = commit_fn;
-}
-
 
 static int8 set_storage_offset_fn(void *ctx_raw, int32 offset) {
     HTRACE("nvm.cpp -> s:set_storage_offset_fn(void*, int32):int8");
@@ -135,6 +118,7 @@ static uint32 get_storage_offset_fn(void *ctx_raw) {
     }
     auto *ctx = static_cast<ConfigContext*>(ctx_raw);
 
+    HTRACE("[NVM    ] Storage offset: %d bytes", ctx->storage_offset);
     return ctx->storage_offset;
 }
 
@@ -153,7 +137,7 @@ static int8 set_sectors_number_fn(void *ctx_raw, int32 sectors) {
     return NVM_OK;
 }
 
-static uint32 get_sectors_number_fn(void *ctx_raw, int32 sectors) {
+static uint32 get_sectors_number_fn(void *ctx_raw) {
     HTRACE("nvm.cpp -> s:get_sectors_number_fn(void*):uint32");
 
     if(!ctx_raw) {
@@ -162,7 +146,47 @@ static uint32 get_sectors_number_fn(void *ctx_raw, int32 sectors) {
     }
     auto *ctx = static_cast<ConfigContext*>(ctx_raw);
 
+    HTRACE("[NVM    ] Sectors number: %d", ctx->sectors_number);
     return ctx->sectors_number;
+}
+
+static uint32 get_current_page_fn(void *ctx_raw) {
+    HTRACE("nvm.cpp -> s:get_pages_in_sector_fn(void*):uint32");
+
+    if(!ctx_raw) {
+        HERROR("[NVM    ] Null context passed to function");
+        return NVM_ERROR_NULL_CONTEXT;
+    }
+    auto *ctx = static_cast<ConfigContext*>(ctx_raw);
+
+    HTRACE("[NVM    ] Current page: %d", ctx->sectors_number);
+    return ctx->current_page;
+}
+
+
+void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
+    HTRACE("nvm.cpp -> bind(NVM&, ConfigContext&, const BackendTable&):void");
+
+    nvm.ctx = static_cast<ConfigContext*>(&cfg);
+
+    nvm.init_fn = backend.init_fn;
+    nvm.deinit_fn = backend.deinit_fn;
+
+    nvm.clear_sector_fn = backend.clear_sector_fn;
+
+    nvm.get_storage_offset_fn = get_storage_offset_fn;
+    nvm.set_storage_offset_fn = set_storage_offset_fn;
+
+    nvm.get_sectors_number_fn = get_sectors_number_fn;
+    nvm.set_sectors_number_fn = set_sectors_number_fn;
+
+    nvm.get_current_page_fn = get_current_page_fn;
+
+    nvm.write_blocking_fn = backend.write_blocking_fn;
+    nvm.read_blocking_fn = backend.read_blocking_fn;
+
+    nvm.transaction_fn = transaction_fn;
+    nvm.commit_fn = commit_fn;
 }
 
 

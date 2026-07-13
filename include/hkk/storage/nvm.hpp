@@ -103,6 +103,7 @@ public:
         uint32 (*get_storage_offset_fn)(void *ctx),
         int8   (*set_sectors_number_fn)(void *ctx, int32 sectors),
         uint32 (*get_sectors_number_fn)(void *ctx),
+        uint32 (*get_current_page_fn)(void *ctx),
         int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len),
         int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len),
         int8   (*transaction_fn)(void *ctx, void *owner),
@@ -115,6 +116,7 @@ public:
         get_storage_offset_fn(get_storage_offset_fn),
         set_sectors_number_fn(set_sectors_number_fn),
         get_sectors_number_fn(get_sectors_number_fn),
+        get_current_page_fn(get_current_page_fn),
         write_blocking_fn(write_blocking_fn),
         read_blocking_fn(read_blocking_fn),
         transaction_fn(transaction_fn),
@@ -149,6 +151,10 @@ public:
     }
     uint32 sectors() {
         return get_sectors_number_fn ? get_sectors_number_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED; 
+    }
+
+    uint32 page() {
+        return get_current_page_fn ? get_current_page_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
 
 
@@ -218,6 +224,8 @@ private:
     int8   (*set_sectors_number_fn)(void *ctx, int32 sectors) = nullptr;
     uint32 (*get_sectors_number_fn)(void *ctx) = nullptr;
 
+    uint32 (*get_current_page_fn)(void *ctx) = nullptr;
+
     int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
     int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
 
@@ -230,12 +238,6 @@ struct BackendTable {
     int8   (*deinit_fn)(void *ctx) = nullptr;
 
     int8   (*clear_sector_fn)(void *ctx, int32 offset, size_t sectors_number) = nullptr;
-    
-    int8   (*set_storage_offset_fn)(void *ctx, int32 offset) = nullptr;
-    uint32 (*get_storage_offset_fn)(void *ctx) = nullptr;
-
-    int8   (*set_sectors_number_fn)(void *ctx, int32 sectors) = nullptr;
-    uint32 (*get_sectors_number_fn)(void *ctx) = nullptr;
 
     int8   (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
     int8   (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;

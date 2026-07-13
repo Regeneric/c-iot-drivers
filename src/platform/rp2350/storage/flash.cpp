@@ -185,7 +185,7 @@ static int8 write_blocking_fn(void *ctx_raw, int32 addr, const uint8 *src, size_
     HTRACE("[FLASH  ] Current page  : %d", (ctx->current_page - 1));
 
 
-    HINFO("[FLASH  ] Write completed successfully");
+    HDEBUG("[FLASH  ] Write completed successfully");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
@@ -259,14 +259,14 @@ static int8 read_blocking_fn(void *ctx_raw, int32 addr, int32 page, uint8 *dst, 
     HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
     HTRACE("[FLASH  ] Page number   : %d", page);
 
-    HINFO("[FLASH  ] Read completed successfully");
+    HDEBUG("[FLASH  ] Read completed successfully");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
 }
 
 static int8 clear_sector_fn(void *ctx_raw, int32 offset, size_t sectors_number) {
-    HTRACE("flash.cpp -> s:clear_sector_fn(void*, int32, int32):int8");
+    HTRACE("flash.cpp -> s:clear_sector_fn(void*, int32, size_t):int8");
 
     if(!ctx_raw) {
         HERROR("[FLASH  ] Null context passed to function");
@@ -285,6 +285,10 @@ static int8 clear_sector_fn(void *ctx_raw, int32 offset, size_t sectors_number) 
     uint32 interrupts = ::save_and_disable_interrupts();
     size_t count = (static_cast<size_t>(ctx->sector_size) * sectors_number);
 
+    HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
+    HTRACE("[FLASH  ] Sector size   : %d bytes", ctx->sector_size);
+    HTRACE("[FLASH  ] Sectors number: %d", sectors_number);
+    
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(transaction->mutex);
         ::mutex_enter_blocking(mutex);
@@ -299,11 +303,7 @@ static int8 clear_sector_fn(void *ctx_raw, int32 offset, size_t sectors_number) 
     }
     ::restore_interrupts(interrupts);
 
-    HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
-    HTRACE("[FLASH  ] Sector size   : %d bytes", ctx->sector_size);
-    HTRACE("[FLASH  ] Sectors number: %d", sectors_number);
-
-    HINFO("[FLASH  ] Clear sector completed successfully");
+    HDEBUG("[FLASH  ] Clear sector completed successfully");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
