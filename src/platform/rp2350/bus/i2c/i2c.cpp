@@ -295,7 +295,7 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
     HDEBUG("[I2C    ] Bytes written: %d", written);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[I2C    ] Write completed successfully");
+    HDEBUG("[I2C    ] Write completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -375,7 +375,7 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
     HDEBUG("[I2C    ] Bytes read   : %d", read);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[I2C    ] Read completed successfully");
+    HDEBUG("[I2C    ] Read completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
@@ -462,7 +462,7 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     HTRACE("[I2C    ] Timeout      : %dus", timeout_us);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[I2C    ] Write completed successfully");
+    HDEBUG("[I2C    ] Write completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -548,7 +548,7 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
     HDEBUG("[I2C    ] Bytes read   : %d", read);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HINFO("[I2C    ] Read completed successfully");
+    HDEBUG("[I2C    ] Read completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
@@ -741,11 +741,11 @@ void bind(I2C &i2c, ConfigContext &cfg, BackendTable &backend) {
     i2c.transaction_fn = transaction_fn;
     i2c.commit_fn = commit_fn;
 
-    HDEBUG("[I2C    ] I2C instance bound to config context");
+    HINFO("[I2C    ] I2C instance bound to config context");
 }
 
 void bind(I2C &i2c, ConfigContext &cfg) {
-    HTRACE("i2c.cpp -> bind(NVM&, ConfigContext&):void");
+    HTRACE("i2c.cpp -> bind(I2C&, ConfigContext&):void");
     bind(i2c, cfg, hkk::rp2350::i2c::backend);
 }
 

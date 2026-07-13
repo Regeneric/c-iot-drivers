@@ -29,18 +29,30 @@ bool8 repeating_timer_ms(int64 ms, void *callback, void *data) {
     return ::add_repeating_timer_ms(ms, cb, data, &rt2);
 }
 
-bool8 alarm_us(uint32 us, void *callback, void *data, bool8 fire_if_past) {
-    HTRACE("utils.cpp -> alarm_us(uint32, void*, void*, bool8 = true):int8");
 
-    auto cb = (alarm_callback_t)(callback);
-    return static_cast<int8>(::add_alarm_in_us(us, cb, data, fire_if_past));
+static int64 alarm_adapter(alarm_id_t id, void *user_data) {
+    HTRACE("utils.cpp -> alarm_adapter(alarm_id_t, void*):int64");
+    
+    if(!user_data) {
+        HERROR("[UTILS  ] Null context passed to function");
+        return 0;
+    }
+    auto *ctx = static_cast<AlarmContext *>(user_data);
+
+    if(ctx && ctx->callback) ctx->callback(ctx->data);
+    return 0;
 }
 
-int8 alarm_ms(uint32 ms, void *callback, void *data, bool8 fire_if_past) {
-    HTRACE("utils.cpp -> alarm_ms(uint32, void*, void*, bool8 = true):int8");
+int32 alarm_us(uint32 us, AlarmContext *ctx, bool8 fire_if_past) {
+    HTRACE("utils.cpp -> alarm_us(uint32, AlarmContext*, void*, bool8 = true):int8");
 
-    auto cb = (alarm_callback_t)(callback);
-    return static_cast<int8>(::add_alarm_in_ms(ms, cb, data, fire_if_past));
+    return static_cast<int32>(::add_alarm_in_ms(us, alarm_adapter, ctx, fire_if_past));
+}
+
+int32 alarm_ms(uint32 ms, AlarmContext *ctx, bool8 fire_if_past) {
+    HTRACE("utils.cpp -> alarm_ms(uint32, AlarmContext*, void*, bool8 = true):int8");
+
+    return static_cast<int32>(::add_alarm_in_ms(ms, alarm_adapter, ctx, fire_if_past));
 }
 
 }

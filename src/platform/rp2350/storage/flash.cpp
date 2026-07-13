@@ -78,12 +78,14 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
     ctx->pages_per_sector = (ctx->pages_per_sector ? ctx->pages_per_sector : (ctx->sector_size / ctx->page_size));
     ctx->sectors_number   = (ctx->sectors_number   ? ctx->sectors_number   : FLASH_SECTORS_NUMBER);
     ctx->storage_offset   = (ctx->storage_offset   ? ctx->storage_offset   : (PICO_FLASH_SIZE_BYTES - (ctx->sectors_number * ctx->sector_size)));
+    ctx->current_page     = (ctx->current_page     ? ctx->current_page     : 0);
 
     HDEBUG("[FLASH  ] Sector size     : %d bytes", ctx->sector_size);
     HDEBUG("[FLASH  ] Page size       : %d bytes", ctx->page_size);
     HDEBUG("[FLASH  ] Storage offset  : %d bytes", ctx->storage_offset);
     HDEBUG("[FLASH  ] Pages per sector: %d", ctx->pages_per_sector);
     HDEBUG("[FLASH  ] Sectors number  : %d", ctx->sectors_number);
+    HDEBUG("[FLASH  ] Current page    : %d", ctx->current_page);
 
     if(clear_data == true) {
         HWARN("[FLASH  ] Specified sector will be erased");
@@ -177,12 +179,12 @@ static int8 write_blocking_fn(void *ctx_raw, int32 addr, const uint8 *src, size_
     }
     ::restore_interrupts(interrupts);
 
-    ctx->current_page = current_page_g++;
+    ctx->current_page = ++current_page_g;
 
     HTRACE("[FLASH  ] First byte    : 0x%02X", payload[0]);
     HTRACE("[FLASH  ] Last byte     : 0x%02X", payload[len - 1]);
     HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
-    HTRACE("[FLASH  ] Current page  : %d", (ctx->current_page - 1));
+    HTRACE("[FLASH  ] Current page  : %d", ctx->current_page);
 
 
     HDEBUG("[FLASH  ] Write completed successfully");

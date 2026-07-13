@@ -33,23 +33,23 @@ int8 SGP30::iaq_init(void) {
 
 int8 SGP30::measure_iaq(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_iaq(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
     
     int8 status = this->send_command(Command::MeasureIaq);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 12 Measurement commands
     hkk::utils::sleep_ms(12);
 
     uint8 data[DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     int8 crc_eco2_status = crc_validate((data + 0), 3);     // data[0:2] - eCO2_MSB, eCO2_LSB, eCO2_CRC
-    if(crc_eco2_status < SGP30_OK) return crc_eco2_status;
+    if(crc_eco2_status < SGP30_OK) return result.status = crc_eco2_status;
 
     int8 crc_tvoc_status = crc_validate((data + 3), 3);     // data[3:6] - TVOC_MSB, TVOC_LSB, TVOC_CRC
-    if(crc_tvoc_status < SGP30_OK) return crc_tvoc_status; 
+    if(crc_tvoc_status < SGP30_OK) return result.status = crc_tvoc_status; 
 
     result.eco2 = ((static_cast<uint16>(data[0]) << 8) | static_cast<uint16>(data[1]));   // ((MSB << 8) | LSB)
     result.tvoc = ((static_cast<uint16>(data[3]) << 8) | static_cast<uint16>(data[4]));   // ((MSB << 8) | LSB)
@@ -61,37 +61,38 @@ int8 SGP30::measure_iaq(Context &result) {
     HTRACE("[SGP30  ] eCO2: %d", result.eco2);  // TODO: check if it's the final result
     HTRACE("[SGP30  ] TVOC: %d", result.tvoc);  // TODO: check if it's the final result
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::get_iaq_baseline(Context &result) {
     HTRACE("command.cpp -> SGP30::get_iaq_baseline(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::GetIaqBaseline);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);
 
     uint8 data[DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     int8 crc_eco2_status = crc_validate((data + 0), 3);     // data[0:2] - eCO2_MSB, eCO2_LSB, eCO2_CRC
-    if(crc_eco2_status < SGP30_OK) return crc_eco2_status;
+    if(crc_eco2_status < SGP30_OK) return result.status = crc_eco2_status;
 
     int8 crc_tvoc_status = crc_validate((data + 3), 3);     // data[3:6] - TVOC_MSB, TVOC_LSB, TVOC_CRC
-    if(crc_tvoc_status < SGP30_OK) return crc_tvoc_status;
+    if(crc_tvoc_status < SGP30_OK) return result.status = crc_tvoc_status;
 
     // 6 bytes: (eCO2_MSB, eCO2_LSB, eCO2_CRC, TVOC_MSB, TVOC_LSB, TVOC_CRC)
     std::memcpy(result.baseline, data, DATA_FRAME_LENGTH);
 
     HDEBUG("[SGP30  ] Get IAQ baseline command sent");
-    HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
-    HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+    HTRACE("[SGP30  ] I2C bus : I2C%d", i2c.index());
+    HTRACE("[SGP30  ] Address : 0x%02X", this->cfg.address);
+    HTRACE("[SGP30  ] Baseline: {0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X}", result.baseline[0], result.baseline[1], result.baseline[2], result.baseline[3], result.baseline[4], result.baseline[5]);
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
@@ -188,17 +189,17 @@ int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
 // Page 10 Measure Test
 int8 SGP30::measure_test(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_test(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::MeasureTest);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(220);
 
     uint8 data[HALF_DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, HALF_DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     uint16 test_value = ((static_cast<uint16>(data[0]) << 8) | static_cast<uint16>(data[1]));
     if(test_value != TestValue) {
@@ -206,32 +207,32 @@ int8 SGP30::measure_test(Context &result) {
         HERROR("[SGP30  ] Expected: 0x%02X", TestValue);
         HERROR("[SGP30  ] Got     : 0x%02X", test_value);
 
-        return SGP30_ERROR_GENERIC;
+        return result.status = SGP30_ERROR_GENERIC;
     }
 
     int8 crc_status = crc_validate(data);
-    if(crc_status < SGP30_OK) return crc_status;
+    if(crc_status < SGP30_OK) return result.status = crc_status;
 
     HDEBUG("[SGP30  ] Measure test command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::feature_set(Context &result) {
     HTRACE("commands.cpp -> SGP30::feature_set(Context &result):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::GetFeatureSet);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);
 
     uint8 data[HALF_DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, HALF_DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     uint16 test_value = ((static_cast<uint16>(data[0]) << 8) | static_cast<uint16>(data[1]));
     if(test_value != FeatureSet) {
@@ -239,38 +240,38 @@ int8 SGP30::feature_set(Context &result) {
         HERROR("[SGP30  ] Expected: 0x%02X", FeatureSet);
         HERROR("[SGP30  ] Got     : 0x%02X", test_value);
 
-        return SGP30_ERROR_GENERIC;
+        return result.status = SGP30_ERROR_GENERIC;
     }
 
     int8 crc_status = crc_validate(data);
-    if(crc_status < SGP30_OK) return crc_status;
+    if(crc_status < SGP30_OK) return result.status = crc_status;
 
     HDEBUG("[SGP30  ] Feature set command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::measure_raw(Context &result) {
     HTRACE("commands.cpp -> measure_raw(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::MeasureRaw);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(25);
 
     uint8 data[DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     int8 crc_h2_status = crc_validate((data + 0), 3);           // data[0:2] - H2_MSB, H2_LSB, H2_CRC
-    if(crc_h2_status < SGP30_OK) return crc_h2_status;
+    if(crc_h2_status < SGP30_OK) return result.status = crc_h2_status;
 
     int8 crc_c2h60_status = crc_validate((data + 3), 3);        // data[3:6] - C2H6O_MSB, C2H6O_LSB, C2H6O_CRC
-    if(crc_c2h60_status < SGP30_OK) return crc_c2h60_status;     
+    if(crc_c2h60_status < SGP30_OK) return result.status = crc_c2h60_status;     
 
     result.h2    = ((static_cast<uint16>(data[0]) << 8) | static_cast<uint16>(data[1]));   // ((MSB << 8) | LSB)
     result.c2h6o = ((static_cast<uint16>(data[3]) << 8) | static_cast<uint16>(data[4]));   // ((MSB << 8) | LSB)
@@ -282,25 +283,25 @@ int8 SGP30::measure_raw(Context &result) {
     HTRACE("[SGP30  ] eCO2: %d", result.h2);    // TODO: check if it's the final result
     HTRACE("[SGP30  ] TVOC: %d", result.c2h6o); // TODO: check if it's the final result
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
     HTRACE("command.cpp -> SGP30::get_tvoc_inceptive_baseline(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::GetTvocInceptiveBaseline);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);
 
     uint8 data[HALF_DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, HALF_DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     int8 crc_status = crc_validate(data, HALF_DATA_FRAME_LENGTH);
-    if(crc_status < SGP30_OK) return crc_status;
+    if(crc_status < SGP30_OK) return result.status = crc_status;
 
     std::memcpy(result.tvoc_baseline, data, HALF_DATA_FRAME_LENGTH);
 
@@ -308,7 +309,7 @@ int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 int8 SGP30::set_tvoc_baseline(uint8 *baseline, size_t len) {
@@ -374,27 +375,27 @@ int8 SGP30::soft_reset(void) {
 }
 
 int8 SGP30::get_serial_number(Context &result) {
-    HTRACE("commands.cpp -> SGP30::get_serial_id(Context&):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+    HTRACE("commands.cpp -> SGP30::get_serial_number(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
     int8 status = this->send_command(Command::GetSerialId);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(1);
 
     uint8 data[JUMBO_DATA_FRAME_LENGTH];
     status = this->read_raw_data(data, JUMBO_DATA_FRAME_LENGTH);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
     int8 crc1_status = crc_validate((data + 0), 3);     // data[0:2]
-    if(crc1_status < SGP30_OK) return crc1_status;
+    if(crc1_status < SGP30_OK) return result.status = crc1_status;
 
     int8 crc2_status = crc_validate((data + 3), 3);     // data[3:6]
-    if(crc2_status < SGP30_OK) return crc2_status;
+    if(crc2_status < SGP30_OK) return result.status = crc2_status;
 
     int8 crc3_status = crc_validate((data + 6), 3);     // data[7:9]
-    if(crc3_status < SGP30_OK) return crc3_status;
+    if(crc3_status < SGP30_OK) return result.status = crc3_status;
 
     std::memcpy(result.serial_number, data, JUMBO_DATA_FRAME_LENGTH);
 
@@ -402,7 +403,7 @@ int8 SGP30::get_serial_number(Context &result) {
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
-    return SGP30_OK;
+    return result.status = SGP30_OK;
 }
 
 }

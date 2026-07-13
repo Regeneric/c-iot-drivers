@@ -19,7 +19,14 @@ void sleep_ms(uint64 ms);
 bool8 repeating_timer_us(int64 us, void *callback, void *data);
 bool8 repeating_timer_ms(int64 ms, void *callback, void *data);
 
-int8 alarm_us(uint32 us, void *callback, void *data, bool8 fire_if_past = true);
-int8 alarm_ms(uint32 ms, void *callback, void *data, bool8 fire_if_past = true);
+
+using AlarmCallback = bool8 (*)(void *);
+struct AlarmContext {
+    AlarmCallback callback;
+    void *data;
+};
+
+int32 alarm_us(uint32 us, AlarmContext *ctx, bool8 fire_if_past = true);
+int32 alarm_ms(uint32 ms, AlarmContext *ctx, bool8 fire_if_past = true);
 
 };

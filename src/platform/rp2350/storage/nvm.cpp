@@ -150,7 +150,7 @@ static uint32 get_sectors_number_fn(void *ctx_raw) {
     return ctx->sectors_number;
 }
 
-static uint32 get_current_page_fn(void *ctx_raw) {
+static uint32 get_pages_per_sector_fn(void *ctx_raw, bool8 current_page) {
     HTRACE("nvm.cpp -> s:get_pages_in_sector_fn(void*):uint32");
 
     if(!ctx_raw) {
@@ -159,8 +159,11 @@ static uint32 get_current_page_fn(void *ctx_raw) {
     }
     auto *ctx = static_cast<ConfigContext*>(ctx_raw);
 
-    HTRACE("[NVM    ] Current page: %d", ctx->sectors_number);
-    return ctx->current_page;
+    HTRACE("[NVM    ] Pages per sector: %d", ctx->pages_per_sector);
+    HTRACE("[NVM    ] Current page    : %d", ctx->current_page);
+    
+    if(current_page == true) return ctx->current_page;
+    else return ctx->pages_per_sector;
 }
 
 
@@ -180,7 +183,7 @@ void bind(NVM &nvm, ConfigContext &cfg, const BackendTable &backend) {
     nvm.get_sectors_number_fn = get_sectors_number_fn;
     nvm.set_sectors_number_fn = set_sectors_number_fn;
 
-    nvm.get_current_page_fn = get_current_page_fn;
+    nvm.get_pages_per_sector_fn = get_pages_per_sector_fn;
 
     nvm.write_blocking_fn = backend.write_blocking_fn;
     nvm.read_blocking_fn = backend.read_blocking_fn;

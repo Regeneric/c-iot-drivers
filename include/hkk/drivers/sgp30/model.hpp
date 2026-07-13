@@ -73,6 +73,8 @@ struct Context {
     uint8  baseline[DATA_FRAME_LENGTH];
 
     uint8  serial_number[JUMBO_DATA_FRAME_LENGTH];
+
+    int8   status = SGP30_OK;
 };
 
 
