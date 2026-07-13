@@ -168,23 +168,21 @@ static int8 write_blocking_fn(void *ctx_raw, int32 addr, const uint8 *src, size_
         ::mutex_enter_blocking(mutex);
         transaction->active = true;
 
-        ::flash_range_program(offset, src, ctx->page_size);
-        current_page_g++;
+        ::flash_range_program(offset, payload, ctx->page_size);
 
         transaction->active = false;
         ::mutex_exit(mutex);
     } else {
-        ::flash_range_program(offset, src, ctx->page_size);
-        current_page_g++;
+        ::flash_range_program(offset, payload, ctx->page_size);
     }
     ::restore_interrupts(interrupts);
 
-    ctx->current_page = current_page_g;
+    ctx->current_page = current_page_g++;
 
     HTRACE("[FLASH  ] First byte    : 0x%02X", payload[0]);
-    HTRACE("[FLASH  ] Last byte     : 0x%02X", payload[ctx->page_size - 1]);
+    HTRACE("[FLASH  ] Last byte     : 0x%02X", payload[len - 1]);
     HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
-    HTRACE("[FLASH  ] Current page  : %d", ctx->current_page);
+    HTRACE("[FLASH  ] Current page  : %d", (ctx->current_page - 1));
 
 
     HINFO("[FLASH  ] Write completed successfully");
@@ -239,18 +237,27 @@ static int8 read_blocking_fn(void *ctx_raw, int32 addr, int32 page, uint8 *dst, 
         offset = static_cast<uint32>(addr + (page * ctx->page_size));
     }
     
-
     uint32 interrupts = ::save_and_disable_interrupts();
+    if(transaction->active == false) {
+        ::mutex_t *mutex = static_cast<::mutex_t*>(transaction->mutex);
+        ::mutex_enter_blocking(mutex);
+        transaction->active = true;
 
-    const uint8 *nvm_data = reinterpret_cast<uint8*>(XIP_BASE + offset);
-    std::memcpy(dst, nvm_data, len);
+        const uint8 *nvm_data = reinterpret_cast<const uint8*>(XIP_BASE + offset);
+        std::memcpy(dst, nvm_data, len);
 
+        transaction->active = false;
+        ::mutex_exit(mutex);
+    } else {
+        const uint8 *nvm_data = reinterpret_cast<const uint8*>(XIP_BASE + offset);
+        std::memcpy(dst, nvm_data, len);
+    }
     ::restore_interrupts(interrupts);
 
-    
-    HTRACE("[FLASH  ] First byte    : 0x%02X", nvm_data[0]);
-    HTRACE("[FLASH  ] Last byte     : 0x%02X", nvm_data[len - 1]);
+    HTRACE("[FLASH  ] First byte    : 0x%02X", dst[0]);
+    HTRACE("[FLASH  ] Last byte     : 0x%02X", dst[len - 1]);
     HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
+    HTRACE("[FLASH  ] Page number   : %d", page);
 
     HINFO("[FLASH  ] Read completed successfully");
 
@@ -273,9 +280,9 @@ static hkk::storage::nvm::BackendTable backend {
 }
 
 
-namespace hkk::storage::nvm {
+namespace hkk::storage::flash {
 
-void bind(NVM &nvm, ConfigContext &cfg) {
+void bind(nvm::NVM &nvm, nvm::ConfigContext &cfg) {
     HTRACE("flash.cpp -> bind(NVM&, ConfigContext&):void");
     bind(nvm, cfg, hkk::rp2350::flash::backend);
 }

@@ -53,9 +53,36 @@ int8 SGP30::setup(void) {
     }
 
     HWARN("[SGP30  ] No IAQ baseline provided");
-    HWARN("[SGP30  ] Performing a cold start");
+    
+    if(!this->cfg.nvm) {
+        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
+        return SGP30_ERROR_NVM;
+    }
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
 
-    int8 status = this->iaq_init();
+    uint8 baseline[6];
+    int8 status = nvm->read(baseline);
+
+    int8 crc_eco2 = crc_validate((baseline + 0), HALF_DATA_FRAME_LENGTH);
+    int8 crc_tvoc = crc_validate((baseline + 3), HALF_DATA_FRAME_LENGTH);
+
+    if(status < SGP30_OK || crc_eco2 < SGP30_OK || crc_tvoc < SGP30_OK) {
+        HWARN("[SGP30  ] No IAQ baseline stored in NVM storage");
+        HWARN("[SGP30  ] Performing a cold start");
+
+        status = this->iaq_init();
+        if(status < SGP30_OK) return status;
+
+        return SGP30_OK;
+    }
+
+    HINFO ("[SGP30  ] IAQ baseline found in NVM storage");
+    HDEBUG("[SGP30  ] Using baseline {0%02X, 0%02X, 0%02X, 0%02X, 0%02X, 0%02X}", baseline[0], baseline[1], baseline[2], baseline[3], baseline[4], baseline[5]);
+
+    status = this->iaq_init();
+    if(status < SGP30_OK) return status;
+
+    status = this->set_iaq_baseline(baseline);
     if(status < SGP30_OK) return status;
 
     return SGP30_OK;
@@ -266,79 +293,6 @@ int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     return SGP30_OK;
 }
 
-// int8 SGP30::data_frame(Command command, uint8 *data, size_t len) {
-//     HTRACE("sgp30.cpp -> SGP30::data_frame(uint8*, size_t):int8");
-//
-//     uint8 crc = 0;
-//     int8 status = crc_calculate(crc, data, len);
-//     if(status < SGP30_OK) return status;
-//
-//     uint8 payload[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH]; 
-//     uint8 cmd[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
-//
-//     std::memcpy(payload, cmd, COMMAND_FRAME_LENGTH);
-//     std::memcpy((payload + COMMAND_FRAME_LENGTH), data, len);
-//     payload[COMMAND_FRAME_LENGTH + len] = crc;
-//
-//     return SGP30_OK;
-// }
-
-
-// static Context calibration_result;
-
-// bool8 calibration_callback(void *data) {
-//     auto *self = static_cast<SGP30*>(data);
-//     if(!self) return false;
-
-//     if(calibration_result.calibrated == true) {
-//         self->set_iaq_baseline(calibration_result.baseline);
-
-//         HINFO("[SGP30  ] Sensor calibrated");
-//         HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
-//             calibration_result.baseline[0], calibration_result.baseline[1], 
-//             calibration_result.baseline[2], calibration_result.baseline[3], 
-//             calibration_result.baseline[4], calibration_result.baseline[5]);
-
-//         return false;
-//     }
-
-//     int8 status = self->measure_iaq(calibration_result);
-//     if(status < SGP30_OK) {
-//         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
-//     } 
-
-//     return true;
-// }
-
-// int8 calibrated_callback(void *data) {
-//     calibration_result.calibrated = true;
-//     return 0;
-// }
-
-// int8 SGP30::calibrate() {
-//     HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
-//     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
-
-//     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
-
-//     int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
-//     if(status) HTRACE("[SGP30  ] Repeating timer started");
-//     else {
-//         HERROR("[SGP30  ] Could not start repeating timer");
-//         return SGP30_ERROR_GENERIC;
-//     }
-
-//     status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
-//     if(status) HTRACE("[SGP30  ] Alarm timer started");
-//     else {
-//         HERROR("[SGP30  ] Could not start alarm timer");
-//         return SGP30_ERROR_GENERIC;
-//     }
-
-//     HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
-//     return SGP30_OK;
-// }
-
 int8 SGP30::calibrate(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::calibrate(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
@@ -475,5 +429,79 @@ int8 SGP30::load_baseline(Context &result) {
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
     return SGP30_OK;
 }
+
+
+// int8 SGP30::data_frame(Command command, uint8 *data, size_t len) {
+//     HTRACE("sgp30.cpp -> SGP30::data_frame(uint8*, size_t):int8");
+//
+//     uint8 crc = 0;
+//     int8 status = crc_calculate(crc, data, len);
+//     if(status < SGP30_OK) return status;
+//
+//     uint8 payload[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH]; 
+//     uint8 cmd[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
+//
+//     std::memcpy(payload, cmd, COMMAND_FRAME_LENGTH);
+//     std::memcpy((payload + COMMAND_FRAME_LENGTH), data, len);
+//     payload[COMMAND_FRAME_LENGTH + len] = crc;
+//
+//     return SGP30_OK;
+// }
+
+
+// static Context calibration_result;
+
+// bool8 calibration_callback(void *data) {
+//     auto *self = static_cast<SGP30*>(data);
+//     if(!self) return false;
+
+//     if(calibration_result.calibrated == true) {
+//         self->set_iaq_baseline(calibration_result.baseline);
+
+//         HINFO("[SGP30  ] Sensor calibrated");
+//         HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
+//             calibration_result.baseline[0], calibration_result.baseline[1], 
+//             calibration_result.baseline[2], calibration_result.baseline[3], 
+//             calibration_result.baseline[4], calibration_result.baseline[5]);
+
+//         return false;
+//     }
+
+//     int8 status = self->measure_iaq(calibration_result);
+//     if(status < SGP30_OK) {
+//         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
+//     } 
+
+//     return true;
+// }
+
+// int8 calibrated_callback(void *data) {
+//     calibration_result.calibrated = true;
+//     return 0;
+// }
+
+// int8 SGP30::calibrate() {
+//     HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
+//     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+//     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+
+//     int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
+//     if(status) HTRACE("[SGP30  ] Repeating timer started");
+//     else {
+//         HERROR("[SGP30  ] Could not start repeating timer");
+//         return SGP30_ERROR_GENERIC;
+//     }
+
+//     status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
+//     if(status) HTRACE("[SGP30  ] Alarm timer started");
+//     else {
+//         HERROR("[SGP30  ] Could not start alarm timer");
+//         return SGP30_ERROR_GENERIC;
+//     }
+
+//     HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
+//     return SGP30_OK;
+// }
 
 }

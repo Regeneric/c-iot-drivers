@@ -98,7 +98,7 @@ public:
         ConfigContext *cfg,
         int8 (*init_fn)(void *ctx, bool8 clear_data),
         int8 (*deinit_fn)(void *ctx),
-        int8 (*clear_sector_fn)(void *ctx),
+        int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number),
         int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len),
         int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len),
         int8 (*transaction_fn)(void *ctx, void *owner),
@@ -122,6 +122,9 @@ public:
         return deinit_fn ? deinit_fn(ctx) : NVM_FUNCTION_NOT_IMPLEMENTED;
     }
 
+    int8 clear(int32 offset, int32 sectors_number) {
+        return clear_sector_fn ? clear_sector_fn(ctx, offset, sectors_number) : NVM_FUNCTION_NOT_IMPLEMENTED;
+    }
 
     int8 write(int32 addr, const uint8 *src, size_t len) {
         return write_blocking_fn ? write_blocking_fn(ctx, addr, src, len) : NVM_FUNCTION_NOT_IMPLEMENTED;
@@ -181,7 +184,7 @@ private:
     int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
     int8 (*deinit_fn)(void *ctx) = nullptr;
 
-    int8 (*clear_sector_fn)(void *ctx) = nullptr;
+    int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number) = nullptr;
 
     int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
     int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
@@ -194,7 +197,7 @@ struct BackendTable {
     int8 (*init_fn)(void *ctx, bool8 clear_data) = nullptr;
     int8 (*deinit_fn)(void *ctx) = nullptr;
 
-    int8 (*clear_sector_fn)(void *ctx) = nullptr;
+    int8 (*clear_sector_fn)(void *ctx, int32 offset, int32 sectors_number) = nullptr;
 
     int8 (*write_blocking_fn)(void *ctx, int32 addr, const uint8 *src, size_t len) = nullptr;
     int8 (*read_blocking_fn)(void *ctx, int32 addr, int32 page, uint8 *dst, size_t len) = nullptr;
@@ -202,3 +205,14 @@ struct BackendTable {
 
 }
 
+namespace hkk::storage::flash {
+    void bind(nvm::NVM &nvm, nvm::ConfigContext &cfg);
+}
+
+namespace hkk::storage::eeprom {
+    void bind(nvm::NVM &nvm, nvm::ConfigContext &cfg);
+}
+
+namespace hkk::storage::fram {
+    void bind(nvm::NVM &nvm, nvm::ConfigContext &cfg);
+}
