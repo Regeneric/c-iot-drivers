@@ -10,122 +10,101 @@
 
 namespace hkk::sgp30 {
 
-static bool8 save_baseline = false;
-static bool8 baseline_callback(void *data) {return save_baseline = true;}
-static hkk::utils::AlarmContext baseline_alarm {
-    .callback = baseline_callback,
-    .data = nullptr,
-};
 
-int8 SGP30::setup(uint8 *baseline, size_t len) {
-    HTRACE("sgp30.cpp -> SGP30::init(uint8*, size_t):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+// Public
+static hkk::utils::AlarmContext baseline_store_alarm;
+static hkk::utils::AlarmContext calibration_alarm;
 
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
-
-    if(!baseline) {
-        HERROR("[SGP30  ] Null data pointer passed to function");
-        return SGP30_ERROR_NULL_DATA;
-    }
-
-    if(len == 0) {
-        HERROR("[SGP30  ] Data length is 0");
-        return SGP30_ERROR_ZERO_LENGTH;
-    } 
-
-    if(len > HALF_DATA_FRAME_LENGTH) {
-        HERROR("[SGP30  ] Data length out of bands");
-        return SGP30_ERROR_OOB;
-    }
-
-    int8 status = this->iaq_init();
-    if(status < SGP30_OK) return status;
-
-    status = this->set_iaq_baseline(baseline, len);
-    if(status < SGP30_OK) return status;
-
-    return SGP30_OK;
+int8 SGP30::setup(void) {
+    HTRACE("sgp30.cpp -> SGP30::setup(-):int8");
+    return this->setup(this->ctx);
 }
 
-// TODO: now setup assumes that baseline exists on page 0 and only there
-int8 SGP30::setup(void) {
-    HTRACE("sgp30.cpp -> SGP30::init(-):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+int8 SGP30::setup(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::setup(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
-    if(!this->cfg.enable) {
-        HINFO("[SGP30  ] SGP30 sensor on I2C%d bus is disabled in the config file", i2c.index());
-        return SGP30_ERROR_SENSOR_DISABLED;
-    }
+    int8 status = SGP30_OK;
 
-    HWARN("[SGP30  ] No IAQ baseline provided");
+    status = this->iaq_init();
+    if(status < SGP30_OK) return result.status = status;
+
+    status = this->get_serial_number(this->ctx);
+    if(status < SGP30_OK) return result.status = status;
+
+    int8 crc_eco2 = crc_validate((result.baseline + 0), HALF_DATA_FRAME_LENGTH);
+    int8 crc_tvoc = crc_validate((result.baseline + 3), HALF_DATA_FRAME_LENGTH);
+    bool8 baseline_invalid = ((crc_eco2 < SGP30_OK) || (crc_tvoc < SGP30_OK));
+
+    if(baseline_invalid == true) HWARN("[SGP30  ] No IAQ baseline provided");
     
     if(!this->cfg.nvm) {
-        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
-        return SGP30_ERROR_NVM;
+        HERROR("[SGP30  ] Null NVM instance in context; data will be lost on shutdown");
+        return result.status = SGP30_ERROR_NVM;
     }
     auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
 
-    uint8 baseline[6];
-    int8 status = nvm->read(baseline);
+    if(baseline_invalid == false) {
+        status = this->set_iaq_baseline(result);
+        if(status < SGP30_OK) return result.status = status;
+        
+        HINFO ("[SGP30  ] Storing provided IAQ baseline in NVM storage");
+        HDEBUG("[SGP30  ] Baseline:  {0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X}", result.baseline[0], result.baseline[1], result.baseline[2], result.baseline[3], result.baseline[4], result.baseline[5]);
+    
+        status = this->store_baseline(result);
+        if(status < SGP30_OK) return result.status = status;
 
-    int8 crc_eco2 = crc_validate((baseline + 0), HALF_DATA_FRAME_LENGTH);
-    int8 crc_tvoc = crc_validate((baseline + 3), HALF_DATA_FRAME_LENGTH);
-
-    if(status < SGP30_OK || crc_eco2 < SGP30_OK || crc_tvoc < SGP30_OK) {
-        HWARN("[SGP30  ] No IAQ baseline stored in NVM storage");
-        HWARN("[SGP30  ] Performing a cold start");
-
-        status = this->iaq_init();
-        if(status < SGP30_OK) return status;
-
-        return SGP30_OK;
+        return status;
     }
+
+    uint8 baseline[DATA_FRAME_LENGTH];
+    status = baseline_lookup(baseline);
+    if(status < SGP30_OK) return result.status = status;
 
     HINFO ("[SGP30  ] IAQ baseline found in NVM storage");
     HDEBUG("[SGP30  ] Using baseline {0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X}", baseline[0], baseline[1], baseline[2], baseline[3], baseline[4], baseline[5]);
 
-    status = this->iaq_init();
-    if(status < SGP30_OK) return status;
-
     status = this->set_iaq_baseline(baseline);
-    if(status < SGP30_OK) return status;
+    if(status < SGP30_OK) return result.status = status;
 
-    // hkk::utils::alarm_ms((1 * HOUR), &baseline_alarm, true);
+    hkk::utils::alarm_ms((1 * HOUR), &baseline_store_alarm, true);
+    HDEBUG("[SGP30  ] Store baseline alarm started");
 
-    return SGP30_OK;
+    result.status = status;
+    return result.status;
 }
 
-int8 SGP30::read_raw_data(uint8 *data, size_t len) {
-    HTRACE("sgp30.cpp -> SGP30::read_raw_data(uint8*):int8");
-    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+int8 SGP30::process(void) {
+    HTRACE("sgp30.cpp -> SGP30::process(-):int8");
+    return this->setup(this->ctx);
+}
 
-    if(!data) {
-        HERROR("[SGP30  ] Null data pointer passed to function");
-        return SGP30_ERROR_NULL_DATA;
+int8 SGP30::process(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::process(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
+
+    int8 status = SGP30_OK;
+
+    // if(result.calibrated == false) {
+        // HWARN("[SGP30  ] Sensor is not calibrated; starting calibration process");
+        // status = this->calibrate(result);
+    // }
+
+    status = this->measure_iaq(result);
+    if(status < SGP30_OK) return status;
+
+    status = this->measure_raw(result);
+    if(status < SGP30_OK) return status;
+
+    status = this->get_iaq_baseline(result);
+    if(status < SGP30_OK) return status;
+
+    if(this->store_baseline_request == true) {
+        this->store_baseline(result);
+        this->store_baseline_request = false;
     }
 
-    if(len == 0) {
-        HERROR("[SGP30  ] Data length is 0");
-        return SGP30_ERROR_ZERO_LENGTH;
-    }
-
-    {
-        auto tx = i2c.transaction(this);
-        if(tx.status < hkk::bus::i2c::I2C_OK) {
-            return this->validate_error(tx.status);
-        }
-
-        int32 status = i2c.read(this->cfg.address, data, len);
-        if(status < hkk::bus::i2c::I2C_OK) {
-            return this->validate_error(status);
-        }
-    }
-
-    HTRACE("[SGP30  ] Raw data read from address: 0x%02X", this->cfg.address);
-    return SGP30_OK;
+    return status;
 }
 
 int8 SGP30::send_command(Command command) {
@@ -133,23 +112,35 @@ int8 SGP30::send_command(Command command) {
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     {
+        int32 status = SGP30_OK;
+
         auto tx = i2c.transaction(this);
         if(tx.status < hkk::bus::i2c::I2C_OK) {
             return this->validate_error(tx.status);
         }
 
         const uint8 commands[] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
-        int32 status = i2c.write(this->cfg.address, commands);
+        status = i2c.write(this->cfg.address, commands);
 
         if(status < hkk::bus::i2c::I2C_OK) {
-            return this->validate_error(status);
+            return this->validate_error(static_cast<int8>(status));
         }
 
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
         HTRACE("[SGP30  ] Command: 0x%04X", static_cast<uint16>(command));
 
-        return SGP30_OK;
+        return static_cast<int8>(status);
     }
+}
+
+int8 SGP30::status(void) {
+    HTRACE("sgp30.cpp -> SGP30::status(-):int8");
+    return this->status(this->ctx);
+}
+
+int8 SGP30::status(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::status(Context&):int8");
+    return result.status;
 }
 
 int8 SGP30::send_payload(uint8 *payload, size_t len) {
@@ -167,24 +158,33 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
     }
 
     {
+        int32 status = SGP30_OK;
+
         auto tx = i2c.transaction(this);
         if(tx.status < hkk::bus::i2c::I2C_OK) {
             return this->validate_error(tx.status);
         }
 
-        int32 status = i2c.write(this->cfg.address, payload, len);
+        status = i2c.write(this->cfg.address, payload, len);
         if(status < hkk::bus::i2c::I2C_OK) {
-            return this->validate_error(status);
+            return this->validate_error(static_cast<int8>(status));
         }
 
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-        return SGP30_OK;
+        return static_cast<int8>(status);
     }
+}
+
+int8 SGP30::compensate_humidity(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::compensate_humidity(Context&):int8");
+    return this->compensate_humidity(this->ctx.absolute_humidity);
 }
 
 int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     HTRACE("sgp30.cpp -> SGP30::compensate_humidity(float32)");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+    int8 status = SGP30_OK;
 
     if(!this->cfg.humid_compensation) {
         HWARN("[SGP30  ] Humidity compensation for sensor on I2C%d bus is disabled in the config file", i2c.index());
@@ -195,33 +195,29 @@ int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     uint16 humidity = static_cast<uint16>(absolute_humidity * 256.0f);
     uint8 data[] = {hkk::utils::msb(humidity), hkk::utils::lsb(humidity)};
 
-    int8 status = this->set_absolute_humidity(data);
+    status = this->set_absolute_humidity(data);
     if(status < SGP30_OK) return status;
 
     HDEBUG("[SGP30  ] Humidity compensation enabled");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
-    return SGP30_OK;
+    return status;
 }
 
-
-static bool8 calibrated = false;
-static bool8 calibration_callback(void *data) {
-    calibrated = true;
-    return false;
+int8 SGP30::calibrate(void) {
+    HTRACE("sgp30.cpp -> SGP30::calibrate(-):int8");
+    return this->ctx.status = this->calibrate(this->ctx);
 }
-static hkk::utils::AlarmContext calibration_alarm {
-    .callback = calibration_callback,
-    .data = nullptr,
-};
 
 int8 SGP30::calibrate(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::calibrate(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
-    HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
-    HDEBUG("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
+    int8 status = SGP30_OK;
+
+    HWARN("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
+    HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
 
     if(!this->cfg.nvm) {
         HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
@@ -235,7 +231,7 @@ int8 SGP30::calibrate(Context &result) {
             return result.status = this->validate_error(tx.status);
         }
 
-        int8 status = nvm->clear(nvm->offset(), nvm->sectors());
+        status = nvm->clear(nvm->offset(), nvm->sectors());
         if(status < hkk::storage::nvm::NVM_OK) {
             return result.status = this->validate_error(status);
         }
@@ -243,14 +239,18 @@ int8 SGP30::calibrate(Context &result) {
         HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
     }
 
+    calibration_alarm.callback = SGP30::sensor_calibrated_callback;
+    calibration_alarm.data = this;
+
     hkk::utils::alarm_ms((12 * HOUR), &calibration_alarm, true);
+    HDEBUG("[SGP30  ] Calibration alarm started");
 
     HDEBUG("[SGP30  ] NVM store cleared");
     HTRACE("[SGP30  ] NVM storage offset: %d bytes", nvm->offset());
     HTRACE("[SGP30  ] NVM sector number : %d", nvm->sectors());
 
-    while(calibrated == false) {
-        int8 status = this->measure_iaq(result);
+    while(this->sensor_calibrated == false) {
+        status = this->measure_iaq(result);
         if(status < SGP30_OK) {
             HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
         }
@@ -267,7 +267,7 @@ int8 SGP30::calibrate(Context &result) {
         hkk::utils::sleep_ms(1 * SECOND);
     }
 
-    int8 status = this->store_baseline(result);
+    status = this->store_baseline(result);
     if(status < SGP30_OK) {
         HERROR("[SGP30  ] Could not save baseline to NMM storage: %s (%d)", hkk::sgp30::rts(status), status);
     }
@@ -275,75 +275,47 @@ int8 SGP30::calibrate(Context &result) {
     HINFO ("[SGP30  ] Calibration process complete");
     HDEBUG("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", result.baseline[0], result.baseline[1], result.baseline[2], result.baseline[3] ,result.baseline[4] ,result.baseline[5]);
 
-    return result.status = SGP30_OK;
+    return result.status = status;
+}
+
+int8 SGP30::store_baseline(void) {
+    HTRACE("sgp30.cpp -> SGP30::store_baseline(-):int8");
+    return this->ctx.status = this->store_baseline(this->ctx);
 }
 
 int8 SGP30::store_baseline(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::store_baseline(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
+    int8 status = SGP30_OK;
+
     if(!this->cfg.nvm) {
         HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
         return result.status = SGP30_ERROR_NVM;
     }
     auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
 
-    int8 status = this->get_iaq_baseline(result);
+    status = this->get_iaq_baseline(result);
     if(status < SGP30_OK) return result.status = status;
 
-    {
-        auto tx = nvm->transaction(this);
-        if(tx.status < hkk::storage::nvm::NVM_OK) {
-            return result.status = this->validate_error(tx.status);
-        }
+    uint8 baseline[DATA_FRAME_LENGTH];
+    status = baseline_lookup(baseline);
+    if(status < SGP30_OK) return status;
 
-        uint8 baseline[DATA_FRAME_LENGTH];
-        int8  crc_status = SGP30_ERROR_GENERIC;
+    return result.status = status;
+}
 
-        // Clear whole sector if the page number is 0
-        // It means that either it's a cold start or we got to the end of a sector
-        // We check for previous stored baseline, if there is any, and carry it on 
-        if(nvm->pages(true) == 0) {
-            for(int8 page = 0; page != nvm->pages(); ++page) {
-                int8 status = nvm->read(hkk::storage::nvm::NVM_NULL_ADDRESS, page, baseline, DATA_FRAME_LENGTH);
-                if(status < hkk::storage::nvm::NVM_OK) {
-                    return result.status = this->validate_error(status);
-                }
-
-                int8 crc_eco2 = crc_validate((baseline + 0), HALF_DATA_FRAME_LENGTH);
-                int8 crc_tvoc = crc_validate((baseline + 3), HALF_DATA_FRAME_LENGTH);
-
-                if(crc_eco2 == SGP30_OK && crc_tvoc == SGP30_OK) {
-                    crc_status = SGP30_OK;
-                    break;
-                }
-            }
-
-            if(crc_status < SGP30_OK) HWARN("[SGP30  ] No IAQ baseline stored in NVM storage");
-            if(crc_status == SGP30_OK) {
-                std::memcpy(result.baseline, baseline, DATA_FRAME_LENGTH);
-            }
-
-            int8 status = nvm->clear(nvm->offset(), nvm->sectors());
-            if(status < hkk::storage::nvm::NVM_OK) {
-                return result.status = this->validate_error(status);
-            }
-        }
-
-        int8 status = nvm->write(result.baseline);
-        if(status < hkk::storage::nvm::NVM_OK) {
-            return result.status = this->validate_error(status);
-        }
-
-        HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-        return result.status = SGP30_OK;
-    }
+int8 SGP30::load_baseline(void) {
+    HTRACE("sgp30.cpp -> SGP30::load_baseline(-):int8");
+    return this->ctx.status = this->load_baseline(this->ctx);
 }
 
 int8 SGP30::load_baseline(Context &result) {
     HTRACE("sgp30.cpp -> SGP30::load_baseline(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
 
+    int8 status = SGP30_OK;
+
     if(!this->cfg.nvm) {
         HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
         return result.status = SGP30_ERROR_NVM;
@@ -356,21 +328,149 @@ int8 SGP30::load_baseline(Context &result) {
             return result.status = this->validate_error(tx.status);
         }
 
-        int8 status = nvm->read(result.baseline);
+        status = nvm->read(result.baseline);
         if(status < hkk::storage::nvm::NVM_OK) {
             return result.status = this->validate_error(status);
         }
     }
 
-    int8 status = this->set_iaq_baseline(result.baseline);
+    status = this->set_iaq_baseline(result.baseline);
     if(status < SGP30_OK) return result.status = status;
 
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-    return result.status = SGP30_OK;
+    return result.status = status;
+}
+
+
+uint32 SGP30::eco2(void) {
+    HTRACE("sgp30.cpp -> SGP30::eco2(-):int8");
+    return this->ctx.eco2;
+}
+
+void SGP30::eco2(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::eco2(Context&):void");
+    result.eco2 = this->ctx.eco2;
+}
+
+uint32 SGP30::tvoc(void) {
+    HTRACE("sgp30.cpp -> SGP30::tvoc(-):int8");
+    return this->ctx.tvoc;
+}
+
+void SGP30::tvoc(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::tvoc(Context&):void");
+    result.tvoc = this->ctx.tvoc;
+}
+
+uint32 SGP30::h2(void) {
+    HTRACE("sgp30.cpp -> SGP30::h2(-):int8");
+    return this->ctx.h2;
+}
+
+void SGP30::h2(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::h2(Context&):void");
+    result.h2 = this->ctx.h2;
+}
+
+uint32 SGP30::c2h6o(void) {
+    HTRACE("sgp30.cpp -> SGP30::c2h6o(-):int8");
+    return this->ctx.c2h6o;
+}
+
+void SGP30::c2h6o(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::c2h6o(Context&):void");
+    result.c2h6o = this->ctx.c2h6o;
+}
+
+uint8 *SGP30::baseline(bool8 tvoc_baseline) {
+    HTRACE("sgp30.cpp -> SGP30::baseline(bool8):uint8*");
+    return tvoc_baseline ? this->ctx.tvoc_baseline : this->ctx.baseline;
+}
+
+void SGP30::baseline(Context &result, bool8 tvoc_baseline) {
+    HTRACE("sgp30.cpp -> SGP30::baseline(Context&, bool8):void");
+
+    if(tvoc_baseline == true) {
+        std::memcpy(result.tvoc_baseline, this->ctx.tvoc_baseline, DATA_FRAME_LENGTH);
+    } else {
+        std::memcpy(result.baseline, this->ctx.baseline, DATA_FRAME_LENGTH);
+    }
+}
+
+uint8 *SGP30::test(void) {
+    HTRACE("sgp30.cpp -> SGP30::test(-):uint8*");
+    return this->ctx.measure_test;
+}
+
+void SGP30::test(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::test(Context&):void");
+    std::memcpy(result.measure_test, this->ctx.measure_test, DATA_FRAME_LENGTH);
+}
+
+uint8 *SGP30::serial_number(void) {
+    HTRACE("sgp30.cpp -> SGP30::serial_number(-):uint8*");
+    return this->ctx.serial_number;
+}
+
+void SGP30::serial_number(Context &result) {
+    HTRACE("sgp30.cpp -> SGP30::serial_number(Context&):void");
+    std::memcpy(result.serial_number, this->ctx.serial_number, JUMBO_DATA_FRAME_LENGTH);
+}
+
+
+// Private
+bool8 SGP30::baseline_store_callback(void *data) {
+    if(!data) return false;
+
+    auto *self = static_cast<SGP30*>(data);
+    return self->store_baseline_request = true;
+}
+
+bool8 SGP30::sensor_calibrated_callback(void *data) {
+    if(!data) return false;
+
+    auto *self = static_cast<SGP30*>(data);
+    self->sensor_calibrated = true;
+
+    return false;
+}
+
+
+int8 SGP30::read_raw_data(uint8 *data, size_t len) {
+    HTRACE("sgp30.cpp -> SGP30::read_raw_data(uint8*):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+
+    int32 status = SGP30_OK;
+
+    if(!data) {
+        HERROR("[SGP30  ] Null data pointer passed to function");
+        return SGP30_ERROR_NULL_DATA;
+    }
+
+    if(len == 0) {
+        HERROR("[SGP30  ] Data length is 0");
+        return SGP30_ERROR_ZERO_LENGTH;
+    }
+
+    {
+        auto tx = i2c.transaction(this);
+        if(tx.status < hkk::bus::i2c::I2C_OK) {
+            return this->validate_error(tx.status);
+        }
+
+        status = i2c.read(this->cfg.address, data, len);
+        if(status < hkk::bus::i2c::I2C_OK) {
+            return this->validate_error(static_cast<int32>(status));
+        }
+    }
+
+    HTRACE("[SGP30  ] Raw data read from address: 0x%02X", this->cfg.address);
+    return static_cast<int32>(status);
 }
 
 int8 SGP30::validate_error(int8 error) {
     HTRACE("sgp30.cpp -> SGP30::validate_error(int8):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     if(error < hkk::storage::nvm::NVM_OK) {
         HERROR("[SGP30  ] Could not write data to NVM storage");
@@ -430,77 +530,68 @@ int8 SGP30::validate_error(int8 error) {
     return SGP30_OK;
 }
 
-// int8 SGP30::data_frame(Command command, uint8 *data, size_t len) {
-//     HTRACE("sgp30.cpp -> SGP30::data_frame(uint8*, size_t):int8");
-//
-//     uint8 crc = 0;
-//     int8 status = crc_calculate(crc, data, len);
-//     if(status < SGP30_OK) return status;
-//
-//     uint8 payload[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH]; 
-//     uint8 cmd[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(command), hkk::utils::lsb(command)};
-//
-//     std::memcpy(payload, cmd, COMMAND_FRAME_LENGTH);
-//     std::memcpy((payload + COMMAND_FRAME_LENGTH), data, len);
-//     payload[COMMAND_FRAME_LENGTH + len] = crc;
-//
-//     return SGP30_OK;
-// }
+int8 SGP30::baseline_lookup(uint8 *baseline) {
+    HTRACE("sgp30.cpp -> SGP30::baseline_lookup(uint8*):int8");
+    if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
+    int8 status = SGP30_OK;
 
-// static Context calibration_result;
+    if(!this->cfg.nvm) {
+        HERROR("[SGP30  ] Null NVM instance in context; nowhere to save baseline");
+        return SGP30_ERROR_NVM;
+    }
+    auto *nvm = static_cast<hkk::storage::nvm::NVM*>(this->cfg.nvm);
 
-// bool8 calibration_callback(void *data) {
-//     auto *self = static_cast<SGP30*>(data);
-//     if(!self) return false;
+    {
+        auto tx = nvm->transaction(this);
+        if(tx.status < hkk::storage::nvm::NVM_OK) {
+            return this->validate_error(tx.status);
+        }
 
-//     if(calibration_result.calibrated == true) {
-//         self->set_iaq_baseline(calibration_result.baseline);
+        uint8 data[DATA_FRAME_LENGTH];
+        int8  crc_status = SGP30_ERROR_GENERIC;
 
-//         HINFO("[SGP30  ] Sensor calibrated");
-//         HINFO("[SGP30  ] Baseline: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", 
-//             calibration_result.baseline[0], calibration_result.baseline[1], 
-//             calibration_result.baseline[2], calibration_result.baseline[3], 
-//             calibration_result.baseline[4], calibration_result.baseline[5]);
+        // Clear whole sector if the page number is 0
+        // It means that either it's a cold start or we got to the end of a sector
+        // We check for previous stored baseline, if there is any, and carry it on 
+        if(nvm->pages(true) == 0) {
+            for(int8 page = 0; page != nvm->pages(); ++page) {
+                status = nvm->read(hkk::storage::nvm::NVM_NULL_ADDRESS, page, data, DATA_FRAME_LENGTH);
+                if(status < hkk::storage::nvm::NVM_OK) {
+                    return this->validate_error(status);
+                }
 
-//         return false;
-//     }
+                int8 crc_eco2 = crc_validate((data + 0), HALF_DATA_FRAME_LENGTH);
+                int8 crc_tvoc = crc_validate((data + 3), HALF_DATA_FRAME_LENGTH);
 
-//     int8 status = self->measure_iaq(calibration_result);
-//     if(status < SGP30_OK) {
-//         HWARN("[SGP30  ] Error during SGP30 sensor calibration: %s (%d)", hkk::sgp30::rts(status), status);
-//     } 
+                if(crc_eco2 == SGP30_OK && crc_tvoc == SGP30_OK) {
+                    crc_status = SGP30_OK;
+                    break;
+                }
+            }
 
-//     return true;
-// }
+            if(crc_status < SGP30_OK) {
+                HWARN("[SGP30  ] No IAQ baseline stored in NVM storage");
+                return SGP30_ERROR_NVM;
+            }
+            if(crc_status == SGP30_OK) {
+                std::memcpy(baseline, data, DATA_FRAME_LENGTH);
+            }
 
-// int8 calibrated_callback(void *data) {
-//     calibration_result.calibrated = true;
-//     return 0;
-// }
+            status = nvm->clear(nvm->offset(), nvm->sectors());
+            if(status < hkk::storage::nvm::NVM_OK) {
+                return this->validate_error(status);
+            }
+        }
 
-// int8 SGP30::calibrate() {
-//     HTRACE("sgp30.cpp -> SGP30::calibrate():int8");
-//     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
+        status = nvm->write(baseline, DATA_FRAME_LENGTH);
+        if(status < hkk::storage::nvm::NVM_OK) {
+            return this->validate_error(status);
+        }
+    }
 
-//     HWARN ("[SGP30  ] Calibration process takes up to 12 hours before it produces any usable baseline value");
-
-//     int8 status = hkk::utils::repeating_timer_ms(-(1 * SECOND), (void*)calibration_callback, this);
-//     if(status) HTRACE("[SGP30  ] Repeating timer started");
-//     else {
-//         HERROR("[SGP30  ] Could not start repeating timer");
-//         return SGP30_ERROR_GENERIC;
-//     }
-
-//     status = hkk::utils::alarm_ms((12 * HOUR), (void*)calibrated_callback, NULL);
-//     if(status) HTRACE("[SGP30  ] Alarm timer started");
-//     else {
-//         HERROR("[SGP30  ] Could not start alarm timer");
-//         return SGP30_ERROR_GENERIC;
-//     }
-
-//     HINFO("[SGP30  ] Calibration started for SGP30 sensor on bus I2C%d", i2c.index());
-//     return SGP30_OK;
-// }
+    HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
+    return status;
+}
 
 }

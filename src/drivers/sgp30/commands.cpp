@@ -31,6 +31,11 @@ int8 SGP30::iaq_init(void) {
     return SGP30_OK;
 }
 
+int8 SGP30::measure_iaq(void) {
+    HTRACE("commands.cpp -> SGP30::measure_iaq(-):int8");
+    return this->measure_iaq(this->ctx);
+}
+
 int8 SGP30::measure_iaq(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_iaq(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
@@ -58,10 +63,15 @@ int8 SGP30::measure_iaq(Context &result) {
     HTRACE("[SGP30  ] Measure IAQ command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-    HTRACE("[SGP30  ] eCO2: %d", result.eco2);  // TODO: check if it's the final result
-    HTRACE("[SGP30  ] TVOC: %d", result.tvoc);  // TODO: check if it's the final result
+    HTRACE("[SGP30  ] eCO2: %d", result.eco2);
+    HTRACE("[SGP30  ] TVOC: %d", result.tvoc);
 
     return result.status = SGP30_OK;
+}
+
+int8 SGP30::get_iaq_baseline(void) {
+    HTRACE("commands.cpp -> SGP30::get_iaq_baseline(-):int8");
+    return this->get_iaq_baseline(this->ctx);
 }
 
 int8 SGP30::get_iaq_baseline(Context &result) {
@@ -87,12 +97,17 @@ int8 SGP30::get_iaq_baseline(Context &result) {
     // 6 bytes: (eCO2_MSB, eCO2_LSB, eCO2_CRC, TVOC_MSB, TVOC_LSB, TVOC_CRC)
     std::memcpy(result.baseline, data, DATA_FRAME_LENGTH);
 
-    HDEBUG("[SGP30  ] Get IAQ baseline command sent");
+    HTRACE("[SGP30  ] Get IAQ baseline command sent");
     HTRACE("[SGP30  ] I2C bus : I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address : 0x%02X", this->cfg.address);
     HTRACE("[SGP30  ] Baseline: {0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X}", result.baseline[0], result.baseline[1], result.baseline[2], result.baseline[3], result.baseline[4], result.baseline[5]);
 
     return result.status = SGP30_OK;
+}
+
+int8 SGP30::set_iaq_baseline(Context &result) {
+    HTRACE("commands.cpp -> SGP30::set_iaq_baseline(Context&):int8");
+    return this->ctx.status = this->set_iaq_baseline(this->ctx.baseline); 
 }
 
 int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
@@ -141,6 +156,11 @@ int8 SGP30::set_iaq_baseline(uint8 *baseline, size_t len) {
     return SGP30_OK;
 }
 
+int8 SGP30::set_absolute_humidity(Context &result) {
+    HTRACE("commands.cpp -> SGP30::set_absolute_humidity(Context&):int8");
+    return this->ctx.status = this->set_absolute_humidity(this->ctx.raw_absolute_humidity); 
+}
+
 int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
     HTRACE("commands.cpp -> SGP30::set_absolute_humidity(uint8*, size_t):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
@@ -187,6 +207,11 @@ int8 SGP30::set_absolute_humidity(uint8 *humidity, size_t len) {
 }
 
 // Page 10 Measure Test
+int8 SGP30::measure_test(void) {
+    HTRACE("commands.cpp -> SGP30::measure_test(-):int8");
+    return this->measure_test(this->ctx);
+}
+
 int8 SGP30::measure_test(Context &result) {
     HTRACE("commands.cpp -> SGP30::measure_test(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
@@ -218,6 +243,11 @@ int8 SGP30::measure_test(Context &result) {
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
     return result.status = SGP30_OK;
+}
+
+int8 SGP30::feature_set(void) {
+    HTRACE("commands.cpp -> SGP30::feature_set(-):int8");
+    return this->feature_set(this->ctx);
 }
 
 int8 SGP30::feature_set(Context &result) {
@@ -253,6 +283,11 @@ int8 SGP30::feature_set(Context &result) {
     return result.status = SGP30_OK;
 }
 
+int8 SGP30::measure_raw(void) {
+    HTRACE("commands.cpp -> SGP30::measure_raw(-):int8");
+    return this->measure_raw(this->ctx);
+}
+
 int8 SGP30::measure_raw(Context &result) {
     HTRACE("commands.cpp -> measure_raw(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
@@ -286,6 +321,11 @@ int8 SGP30::measure_raw(Context &result) {
     return result.status = SGP30_OK;
 }
 
+int8 SGP30::get_tvoc_inceptive_baseline(void) {
+    HTRACE("commands.cpp -> SGP30::get_tvoc_inceptive_baseline(-):int8");
+    return this->get_tvoc_inceptive_baseline(this->ctx);
+}
+
 int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
     HTRACE("command.cpp -> SGP30::get_tvoc_inceptive_baseline(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return result.status = status;
@@ -310,6 +350,11 @@ int8 SGP30::get_tvoc_inceptive_baseline(Context &result) {
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
     return result.status = SGP30_OK;
+}
+
+int8 SGP30::set_tvoc_baseline(Context &result) {
+    HTRACE("commands.cpp -> SGP30::set_tvoc_baseline(-):int8");
+    return this->ctx.status = this->set_tvoc_baseline(this->ctx.tvoc_baseline);
 }
 
 int8 SGP30::set_tvoc_baseline(uint8 *baseline, size_t len) {
@@ -372,6 +417,11 @@ int8 SGP30::soft_reset(void) {
     HDEBUG("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
     return SGP30_OK;
+}
+
+int8 SGP30::get_serial_number(void) {
+    HTRACE("commands.cpp -> SGP30::get_serial_number(-):int8");
+    return this->get_serial_number(this->ctx);
 }
 
 int8 SGP30::get_serial_number(Context &result) {

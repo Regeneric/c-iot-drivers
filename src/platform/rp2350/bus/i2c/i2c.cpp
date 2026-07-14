@@ -292,10 +292,10 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
 
     HTRACE("[I2C    ] First byte   : 0x%02X", src[0]);
     HTRACE("[I2C    ] Data length  : %zu", len);
-    HDEBUG("[I2C    ] Bytes written: %d", written);
+    HTRACE("[I2C    ] Bytes written: %d", written);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Write completed successfully");
+    HTRACE("[I2C    ] Write completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -372,10 +372,10 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
 
     HTRACE("[I2C    ] First byte   : 0x%02X", dst[0]);
     HTRACE("[I2C    ] Data length  : %zu", len);
-    HDEBUG("[I2C    ] Bytes read   : %d", read);
+    HTRACE("[I2C    ] Bytes read   : %d", read);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Read completed successfully");
+    HTRACE("[I2C    ] Read completed successfully");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;

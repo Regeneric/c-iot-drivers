@@ -16,8 +16,16 @@ constexpr uint8 lsb(const uint16 data) {
 void sleep_us(uint64 us);
 void sleep_ms(uint64 ms);
 
-bool8 repeating_timer_us(int64 us, void *callback, void *data);
-bool8 repeating_timer_ms(int64 ms, void *callback, void *data);
+
+using TimerCallback = bool8 (*)(void *);
+struct TimerContext {
+    TimerCallback callback;
+    void *data;
+    void *timer;
+};
+
+bool repeating_timer_us(int64 us, TimerContext *ctx);
+bool repeating_timer_ms(int64 ms, TimerContext *ctx);
 
 
 using AlarmCallback = bool8 (*)(void *);

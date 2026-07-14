@@ -43,6 +43,8 @@ int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
 int8 crc_validate(uint8 *data, size_t len) {
     HTRACE("sgp30.cpp -> crc_validate(uint8*, size_t):int8");
 
+    int8 status = SGP30_OK;
+
     size_t data_frame_length = HALF_DATA_FRAME_LENGTH;
     if(len == 0 || len > data_frame_length) {
         HERROR("[SGP30  ] Data frame length invalid");
@@ -55,7 +57,7 @@ int8 crc_validate(uint8 *data, size_t len) {
     uint8 crc = 0;
     uint8 sgp_crc = data[2];
 
-    int8 status = crc_calculate(crc, data, (len-1));
+    status = crc_calculate(crc, data, (len-1));
     if(status < SGP30_OK) return status;
 
     if(crc != sgp_crc) {
@@ -67,7 +69,7 @@ int8 crc_validate(uint8 *data, size_t len) {
     }
 
     HTRACE("[SGP30  ] Checksum valid");
-    return SGP30_OK;
+    return status;
 }
 
 const char *rts(int8 status) {
@@ -91,6 +93,5 @@ const char *rts(int8 status) {
         default:                                return "SGP30_ERROR_UNKNOWN";
     }
 }
-
 
 }
