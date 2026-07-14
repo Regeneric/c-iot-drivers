@@ -2,6 +2,7 @@
 #include <hkk/defines.h>
 
 #include <hkk/bus/i2c/i2c.hpp>
+#include <hkk/utils/utils.hpp>
 
 #include <hkk/drivers/sgp30/model.hpp>
 
@@ -13,20 +14,19 @@ public:
 
     // === Commands --------
     int8 iaq_init(void);
+    int8 iaq_init(Context &result);
 
     int8 measure_iaq(void);
     int8 measure_iaq(Context &result);
     
-    int8 get_iaq_baseline(void);;
+    int8 get_iaq_baseline(void);
     int8 get_iaq_baseline(Context &result);
 
+    int8 set_iaq_baseline(uint8 *baseline);
     int8 set_iaq_baseline(Context &result);
-    int8 set_iaq_baseline(uint8 *baseline, size_t len);
-    template<size_t N> int8 set_iaq_baseline(uint8 (&baseline)[N]) {return set_iaq_baseline(baseline, N);}
     
+    int8 set_absolute_humidity(uint8 *humidity);
     int8 set_absolute_humidity(Context &result);
-    int8 set_absolute_humidity(uint8 *humidity, size_t len);
-    template<size_t N> int8 set_absolute_humidity(uint8 (&humidity)[N]) {return set_absolute_humidity(humidity, N);}
 
     int8 measure_test(void);
     int8 measure_test(Context &result);
@@ -40,9 +40,8 @@ public:
     int8 get_tvoc_inceptive_baseline(void);
     int8 get_tvoc_inceptive_baseline(Context &result);
 
+    int8 set_tvoc_baseline(uint8 *baseline);
     int8 set_tvoc_baseline(Context &result);
-    int8 set_tvoc_baseline(uint8 *baseline, size_t len);
-    template<size_t N> int8 set_tvoc_baseline(uint8 (&baseline)[N]) {return set_tvoc_baseline(baseline, N);}
 
     int8 soft_reset(void);
     
@@ -65,9 +64,9 @@ public:
     int8 send_payload(uint8 *payload, size_t len);
     template<size_t N> int8 send_payload(uint8 (&payload)[N]) {return send_payload(payload, N);}
 
-    int8 compensate_humidity(Context &result);
     int8 compensate_humidity(float32 absolute_humidity);    
-    
+    int8 compensate_humidity(Context &result);
+
     int8 calibrate(void);
     int8 calibrate(Context &result);
     
@@ -102,8 +101,8 @@ public:
 private:
     hkk::bus::i2c::I2C &i2c;
     
-    const Config cfg;
-    Context ctx;
+    const Config cfg{};
+    Context ctx{};
 
     int8 sensor_enabled(void) {
         if(!this->cfg.enable) {
@@ -114,12 +113,17 @@ private:
 
     int8 data_frame(Command command, uint8 *data, size_t len);
     int8 read_raw_data(uint8 *data, size_t len);
-    int8 validate_error(int8 error);
     int8 baseline_lookup(uint8 *baseline);
 
+    int8 validate_nvm_error(int8 error);
+    int8 validate_i2c_error(int8 error);
     
-    bool8 store_baseline_request;
-    bool8 sensor_calibrated;
+
+    hkk::utils::TimerContext baseline_store_alarm{};
+    hkk::utils::AlarmContext calibration_alarm{};
+
+    bool8 store_baseline_request = false;
+    bool8 sensor_calibrated = false;
 
     static bool8 baseline_store_callback(void *data);
     static bool8 sensor_calibrated_callback(void *data);

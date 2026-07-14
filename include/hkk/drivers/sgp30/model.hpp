@@ -65,6 +65,7 @@ struct Context {
     float32 absolute_humidity;
 
     bool8  calibrated = false;
+    void   *timer;
 
     uint8  raw_absolute_humidity[HALF_DATA_FRAME_LENGTH];
     uint8  tvoc_baseline[HALF_DATA_FRAME_LENGTH];

@@ -89,6 +89,8 @@ const char *rts(int8 status) {
         case SGP30_ERROR_ZERO_LENGTH:           return "SGP30_ERROR_ZERO_LENGTH";        
         case SGP30_ERROR_OOB:                   return "SGP30_ERROR_OOB";
         case SGP30_ERROR_GENERIC:               return "SGP30_ERROR_GENERIC";
+        case SGP30_ERROR_NVM:                   return "SGP30_ERROR_NVM";
+        case SGP30_ERROR_NVM_TRANSACTION:       return "SGP30_ERROR_NVM_TRANSACTION";
         case SGP30_FUNCTION_NOT_IMPLEMENTED:    return "SGP30_FUNCTION_NOT_IMPLEMENTED"; 
         default:                                return "SGP30_ERROR_UNKNOWN";
     }

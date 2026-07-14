@@ -12,8 +12,8 @@ void sleep_us(uint64 us) {::sleep_us(us);}
 void sleep_ms(uint64 ms) {::sleep_ms(ms);}
 
 
-static bool repeating_timer_adapter(repeating_timer_t *rt) {
-    HTRACE("utils.cpp -> s:repeating_timer_adapter(repeating_timer_t*):bool");
+static bool repeating_timer_adapter(::repeating_timer_t *rt) {
+    HTRACE("utils.cpp -> s:repeating_timer_adapter(::repeating_timer_t*):bool");
     
     if(!rt) {
         HERROR("[UTILS  ] Null context passed to function");
@@ -30,7 +30,7 @@ bool repeating_timer_us(int64 us, TimerContext *ctx) {
 
     if(!ctx) return false;
     if(!ctx->timer) return false;
-    return ::add_repeating_timer_us(us, repeating_timer_adapter, ctx, static_cast<repeating_timer_t*>(ctx->timer));
+    return ::add_repeating_timer_us(us, repeating_timer_adapter, ctx, static_cast<::repeating_timer_t*>(ctx->timer));
 }
 
 bool repeating_timer_ms(int64 ms, TimerContext *ctx) {
@@ -38,12 +38,12 @@ bool repeating_timer_ms(int64 ms, TimerContext *ctx) {
     
     if(!ctx) return false;
     if(!ctx->timer) return false;
-    return ::add_repeating_timer_us(ms, repeating_timer_adapter, ctx, static_cast<repeating_timer_t*>(ctx->timer));
+    return ::add_repeating_timer_ms(ms, repeating_timer_adapter, ctx, static_cast<::repeating_timer_t*>(ctx->timer));
 }
 
 
-static int64 alarm_adapter(alarm_id_t id, void *user_data) {
-    HTRACE("utils.cpp -> s:alarm_adapter(alarm_id_t, void*):int64");
+static int64 alarm_adapter(::alarm_id_t id, void *user_data) {
+    HTRACE("utils.cpp -> s:alarm_adapter(::alarm_id_t, void*):int64");
     
     if(!user_data) {
         HERROR("[UTILS  ] Null context passed to function");
