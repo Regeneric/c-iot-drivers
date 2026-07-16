@@ -178,6 +178,9 @@ public:
     int32 write(uint8 addr, const uint8 (&src)[N], bool8 nostop = false) {
         return write(addr, src, N, nostop);
     }
+    int32 write(uint8 addr, uint8 byte, bool8 nostop = false) {
+        return write(addr, &byte, 1, nostop);
+    }
 
 
     int32 read(uint8 addr, uint8 *dst, size_t len, bool8 nostop = false) {
@@ -195,6 +198,9 @@ public:
     template <size_t N>
     int32 write_timeout(uint8 addr, uint8 (&src)[N], uint32 timeout_us, bool8 nostop = true) {
         return write_timeout(addr, src, N, timeout_us, nostop);
+    }
+    int32 write_timeout(uint8 addr, uint8 byte, uint32 timeout_us, bool8 nostop = false) {
+        return write_timeout(addr, &byte, 1, timeout_us, nostop);
     }
 
 

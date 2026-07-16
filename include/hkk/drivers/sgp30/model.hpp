@@ -51,6 +51,7 @@ enum Result : int8 {
     SGP30_ERROR_OOB                 = -13,
     SGP30_ERROR_NVM                 = -14,
     SGP30_ERROR_NVM_TRANSACTION     = -15,
+    
     SGP30_ERROR_GENERIC             = -100,
     SGP30_FUNCTION_NOT_IMPLEMENTED  = -101,
     SGP30_ERROR_UNKNOWN             = -102
@@ -65,7 +66,6 @@ struct Context {
     float32 absolute_humidity;
 
     bool8  calibrated = false;
-    void   *timer;
 
     uint8  raw_absolute_humidity[HALF_DATA_FRAME_LENGTH];
     uint8  tvoc_baseline[HALF_DATA_FRAME_LENGTH];
@@ -83,6 +83,7 @@ struct Context {
 
 struct Config {
     void        *nvm = nullptr;
+    void        *timer = nullptr;
 
     bool8       enable; 
     bool8       humid_compensation;

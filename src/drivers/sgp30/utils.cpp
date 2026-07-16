@@ -19,8 +19,8 @@ int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
         return SGP30_ERROR_CRC;
     }
 
-    uint8 crc   = Base; // 0b11111111
-    uint8 mask  = Mask; // 0b00110001
+    uint8 crc   = CRC::Base; // 0b11111111
+    uint8 mask  = CRC::Mask; // 0b00110001
     uint8 msbit = 0;
 
     for(size_t i = 0; i != data_frame_length; ++i) {
@@ -35,7 +35,7 @@ int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
     }
 
     checksum = crc;
-    HTRACE("[SGP30  ] Checksum calculated: %d", checksum);
+    HTRACE("[SGP30  ] Checksum calculated: 0x%02X", checksum);
 
     return SGP30_OK;
 }
