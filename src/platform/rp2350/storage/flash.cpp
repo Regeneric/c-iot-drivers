@@ -44,7 +44,7 @@ static int8 deinit_fn(void *ctx_raw) {
     ctx->sectors_number     = 0;
     ctx->storage_offset     = 0;
 
-    HINFO("[FLASH  ] NVM storage deinitialization successful");
+    HINFO("[FLASH  ] NVM storage deinitialized");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
@@ -92,7 +92,7 @@ static int8 init_fn(void *ctx_raw, bool8 clear_data) {
         ::flash_range_erase(ctx->storage_offset, ctx->sector_size);
     }
 
-    HINFO("[FLASH  ] NVM storage initialization successful");
+    HINFO("[FLASH  ] NVM storage initialized");
     
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
@@ -187,7 +187,7 @@ static int8 write_blocking_fn(void *ctx_raw, int32 addr, const uint8 *src, size_
     HTRACE("[FLASH  ] Current page  : %d", ctx->current_page);
 
 
-    HDEBUG("[FLASH  ] Write completed successfully");
+    HDEBUG("[FLASH  ] Write complete");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
@@ -261,7 +261,7 @@ static int8 read_blocking_fn(void *ctx_raw, int32 addr, int32 page, uint8 *dst, 
     HTRACE("[FLASH  ] Storage offset: %d bytes", offset);
     HTRACE("[FLASH  ] Page number   : %d", page);
 
-    HDEBUG("[FLASH  ] Read completed successfully");
+    HDEBUG("[FLASH  ] Read complete");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;
@@ -305,7 +305,7 @@ static int8 clear_sector_fn(void *ctx_raw, int32 offset, size_t sectors_number) 
     }
     ::restore_interrupts(interrupts);
 
-    HDEBUG("[FLASH  ] Clear sector completed successfully");
+    HDEBUG("[FLASH  ] Clear sector complete");
 
     ctx->status = hkk::storage::nvm::NVM_OK;
     return ctx->status;

@@ -41,6 +41,7 @@ enum Result : int8 {
     I2C_ERROR_TIMEOUT            = -11,
     I2C_ERROR_NULL_MUTEX         = -12,
     I2C_ERROR_BUSY               = -13,
+    I2C_KEEP_ALIVE               = I2C_OK,
     I2C_ERROR_GENERIC            = -100,
     I2C_FUNCTION_NOT_IMPLEMENTED = -101,
     I2C_ERROR_UNKNOWN            = -102,
@@ -62,10 +63,10 @@ public:
     TransactionGuard& operator=(const TransactionGuard&) = delete;
 
     TransactionGuard(
-        void *ctx,
-        void *owner,
-        int8 (*commit_fn)(void *ctx, void *owner),
-        int8 status
+        void  *ctx,
+        void  *owner,
+        int8  (*commit_fn)(void *ctx, void *owner),
+        int8  status
     ) : ctx(ctx),
         owner(owner),
         commit_fn(commit_fn),
@@ -76,7 +77,7 @@ public:
         if(status == I2C_OK && commit_fn != nullptr && ctx != nullptr) {
             commit_fn(ctx, owner);
         } else {
-            HERROR("[I2C    ] Transaction function not implemented");
+            HFATAL("[I2C    ] Transaction function not implemented");
         }
     }
 };
@@ -85,6 +86,7 @@ struct LockState {
     void *mutex = nullptr;
     void *owner = nullptr;
     bool8 active = false;
+    bool8 nostop = false;
 };
 
 struct ConfigContext {
@@ -189,6 +191,9 @@ public:
     template <size_t N>
     int32 read(uint8 addr, uint8 (&dst)[N], bool8 nostop = false) {
         return read(addr, dst, N, nostop);
+    }
+    int32 read(uint8 addr, uint8 &byte, bool8 nostop = false) {
+        return read(addr, &byte, 1, nostop);
     }
 
 

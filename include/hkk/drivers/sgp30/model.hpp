@@ -87,7 +87,7 @@ struct Config {
 
     bool8       enable; 
     bool8       humid_compensation;
-    uint8       address;
+    uint8       address = 0x58;
     const char  *name = nullptr;
     const char  *location = nullptr;
 };

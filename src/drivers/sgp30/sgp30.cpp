@@ -183,8 +183,8 @@ int8 SGP30::send_payload(uint8 *payload, size_t len) {
 int8 SGP30::compensate_humidity(float32 absolute_humidity) {
     HTRACE("sgp30.cpp -> SGP30::compensate_humidity(float32)");
     
-    Context ctx = {.absolute_humidity = absolute_humidity};
-    return this->compensate_humidity(ctx);
+    this->ctx.absolute_humidity = absolute_humidity;
+    return this->compensate_humidity(this->ctx);
 }
 
 int8 SGP30::compensate_humidity(Context &res) {
@@ -205,7 +205,7 @@ int8 SGP30::compensate_humidity(Context &res) {
     status = this->set_absolute_humidity(data);
     if(status < SGP30_OK) return res.status = status;
 
-    HDEBUG("[SGP30  ] Humidity compensation enabled");
+    HTRACE("[SGP30  ] Absolute humidity: %3.2f g/m3", res.absolute_humidity);
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
@@ -349,7 +349,7 @@ int8 SGP30::load_baseline(Context &res) {
 
 
 uint32 SGP30::eco2(void) {
-    HTRACE("sgp30.cpp -> SGP30::eco2(-):int8");
+    HTRACE("sgp30.cpp -> SGP30::eco2(-):uint32");
     return this->ctx.eco2;
 }
 
@@ -359,7 +359,7 @@ void SGP30::eco2(Context &res) {
 }
 
 uint32 SGP30::tvoc(void) {
-    HTRACE("sgp30.cpp -> SGP30::tvoc(-):int8");
+    HTRACE("sgp30.cpp -> SGP30::tvoc(-):uint32");
     return this->ctx.tvoc;
 }
 
@@ -369,7 +369,7 @@ void SGP30::tvoc(Context &res) {
 }
 
 uint32 SGP30::h2(void) {
-    HTRACE("sgp30.cpp -> SGP30::h2(-):int8");
+    HTRACE("sgp30.cpp -> SGP30::h2(-):uint32");
     return this->ctx.h2;
 }
 
@@ -379,7 +379,7 @@ void SGP30::h2(Context &res) {
 }
 
 uint32 SGP30::c2h6o(void) {
-    HTRACE("sgp30.cpp -> SGP30::c2h6o(-):int8");
+    HTRACE("sgp30.cpp -> SGP30::c2h6o(-):uint32");
     return this->ctx.c2h6o;
 }
 
@@ -423,6 +423,15 @@ void SGP30::serial_number(Context &res) {
     std::memcpy(res.serial_number, this->ctx.serial_number, JUMBO_DATA_FRAME_LENGTH);
 }
 
+float32 SGP30::humidity_debug(void) {
+    HTRACE("sgp30.cpp -> SGP30::humidity_debug(-):float32");
+    return this->ctx.absolute_humidity;
+}
+
+void SGP30::humidity_debug(Context &res) {
+    HTRACE("sgp30.cpp -> SGP30::humidity_debug(Context&):void");
+    res.absolute_humidity = this->ctx.absolute_humidity;
+}
 
 // Private
 bool8 SGP30::baseline_store_callback(void *data) {

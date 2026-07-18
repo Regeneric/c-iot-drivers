@@ -89,7 +89,7 @@ struct Config {
     void        *nvm = nullptr;
 
     bool8       enable;
-    uint8       address;
+    uint8       address = 0x38;
     const char  *name = nullptr;
     const char  *location = nullptr;
 };

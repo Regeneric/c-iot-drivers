@@ -120,10 +120,9 @@ int8 SGP30::set_iaq_baseline(uint8 *baseline) {
         return SGP30_ERROR_NULL_DATA;
     }
 
-    Context ctx;
-    std::memcpy(ctx.baseline, baseline, DATA_FRAME_LENGTH);
-
-    return this->set_iaq_baseline(ctx);
+    std::memcpy(this->ctx.baseline, baseline, DATA_FRAME_LENGTH);
+    
+    return this->set_iaq_baseline(this->ctx);
 }
 
 int8 SGP30::set_iaq_baseline(Context &res) {
@@ -167,10 +166,9 @@ int8 SGP30::set_absolute_humidity(uint8 *humidity) {
         return SGP30_ERROR_NULL_DATA;
     }
 
-    Context ctx;
-    std::memcpy(ctx.raw_absolute_humidity, humidity, (HALF_DATA_FRAME_LENGTH - 1));
+    std::memcpy(this->ctx.raw_absolute_humidity, humidity, (HALF_DATA_FRAME_LENGTH - 1));
 
-    return this->set_absolute_humidity(ctx);
+    return this->set_absolute_humidity(this->ctx);
 }
 
 int8 SGP30::set_absolute_humidity(Context &res) {
@@ -197,7 +195,7 @@ int8 SGP30::set_absolute_humidity(Context &res) {
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);
 
-    HDEBUG("[SGP30  ] Set absolute humidity command sent");
+    HTRACE("[SGP30  ] Set absolute humidity command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
 
@@ -319,8 +317,8 @@ int8 SGP30::measure_raw(Context &res) {
     HTRACE("[SGP30  ] Measure raw command sent");
     HTRACE("[SGP30  ] I2C bus: I2C%d", i2c.index());
     HTRACE("[SGP30  ] Address: 0x%02X", this->cfg.address);
-    HTRACE("[SGP30  ] eCO2: %d", res.h2);    // TODO: check if it's the final result
-    HTRACE("[SGP30  ] TVOC: %d", res.c2h6o); // TODO: check if it's the final result
+    HTRACE("[SGP30  ] H2     : %d", res.h2);
+    HTRACE("[SGP30  ] C2H6O  : %d", res.c2h6o);
 
     return res.status = status;
 }
@@ -366,10 +364,9 @@ int8 SGP30::set_tvoc_baseline(uint8 *tvoc_baseline) {
         return SGP30_ERROR_NULL_DATA;
     }
 
-    Context ctx;
-    std::memcpy(ctx.tvoc_baseline, tvoc_baseline, (HALF_DATA_FRAME_LENGTH - 1));
+    std::memcpy(this->ctx.tvoc_baseline, tvoc_baseline, (HALF_DATA_FRAME_LENGTH - 1));
 
-    return this->set_tvoc_baseline(ctx);
+    return this->set_tvoc_baseline(this->ctx);
 }
 
 int8 SGP30::set_tvoc_baseline(Context &res) {

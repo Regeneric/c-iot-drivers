@@ -153,7 +153,7 @@ int8 DHT20::send_payload(uint8 addr, uint8 *payload, size_t len) {
             return this->validate_i2c_error(static_cast<int8>(status));
         }
 
-        HTRACE("[SGP30  ] Address: 0x%02X", adrr);
+        HTRACE("[SGP30  ] Address: 0x%02X", addr);
         return (status > DHT20_OK) ? DHT20_OK : static_cast<int8>(status);
     }
 }
@@ -268,12 +268,10 @@ float64 DHT20::calculate_absolute_humidity(void) {
 float64 DHT20::calculate_absolute_humidity(float64 humidity, float64 temperature) {
     HTRACE("dh20.cpp -> DHT20::absolute_humidty(float64, float64):float64");
 
-    Context ctx {
-        .temperature = temperature,
-        .humidity = humidity,
-    };
+    this->ctx.temperature = temperature;
+    this->ctx.humidity = humidity;
 
-    return this->calculate_absolute_humidity(ctx);
+    return this->calculate_absolute_humidity(this->ctx);
 }
 
 float64 DHT20::calculate_absolute_humidity(Context &res) {
@@ -308,12 +306,10 @@ float64 DHT20::calculate_dew_point(void) {
 float64 DHT20::calculate_dew_point(float64 humidity, float64 temperature) {
     HTRACE("dh20.cpp -> DHT20::calculate_dew_point(float64, float64):float64");
 
-    Context ctx {
-        .temperature = temperature,
-        .humidity = humidity
-    };
+    this->ctx.temperature = temperature;
+    this->ctx.humidity = humidity;
 
-    return this->calculate_dew_point(ctx);
+    return this->calculate_dew_point(this->ctx);
 }
 
 float64 DHT20::calculate_dew_point(Context &res) {

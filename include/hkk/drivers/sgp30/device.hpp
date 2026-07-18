@@ -98,6 +98,9 @@ public:
     uint8 *serial_number(void);
     void   serial_number(Context &res);
 
+    float32 humidity_debug(void);
+    void    humidity_debug(Context &res);
+
 private:
     hkk::bus::i2c::I2C &i2c;
     const Config cfg;

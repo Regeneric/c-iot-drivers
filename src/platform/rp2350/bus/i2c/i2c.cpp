@@ -184,7 +184,7 @@ static int32 get_baudrate_fn(void *ctx_raw) {
 static int8 set_index_fn(void *ctx_raw, int8 value) {
     HTRACE("i2c.cpp -> s:set_index_fn(void*, int8):int8");
     
-    HWARN("[I2C    ] Function not implemented on RP2350");
+    HFATAL("[I2C    ] Function not implemented on RP2350");
     return hkk::bus::i2c::I2C_ERROR_NOT_SUPPORTED;
 }
 
@@ -261,6 +261,7 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
     }
 
     auto *transaction = static_cast<hkk::bus::i2c::LockState*>(ctx->transaction);
+    transaction->nostop = nostop;
 
     int32 written = PICO_ERROR_GENERIC;
     if(transaction->active == false) {
@@ -270,8 +271,10 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
         
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
 
-        transaction->active = false;
-        ::mutex_exit(mutex);
+        if(nostop == false) {
+            transaction->active = false;
+            ::mutex_exit(mutex);
+        }
     } else {
         written = ::i2c_write_blocking(instance, addr, src, len, nostop);
     }
@@ -295,7 +298,7 @@ static int32 write_blocking_fn(void *ctx_raw, uint8 addr, const uint8 *src, size
     HTRACE("[I2C    ] Bytes written: %d", written);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HTRACE("[I2C    ] Write completed successfully");
+    HTRACE("[I2C    ] Write complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -341,7 +344,8 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
     }
 
     auto *transaction = static_cast<hkk::bus::i2c::LockState*>(ctx->transaction);
-
+    transaction->nostop = nostop;
+    
     int32 read = PICO_ERROR_GENERIC;
     if(transaction->active == false) {
         ::mutex_t *mutex = static_cast<::mutex_t*>(ctx->transaction->mutex);
@@ -350,8 +354,10 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
         
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
 
-        transaction->active = false;
-        ::mutex_exit(mutex);
+        if(nostop == false) {
+            transaction->active = false;
+            ::mutex_exit(mutex);
+        }
     } else {
         read = ::i2c_read_blocking(instance, addr, dst, len, nostop);
     }
@@ -375,7 +381,7 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len,
     HTRACE("[I2C    ] Bytes read   : %d", read);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HTRACE("[I2C    ] Read completed successfully");
+    HTRACE("[I2C    ] Read complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
@@ -421,6 +427,7 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     }
 
     auto *transaction = static_cast<hkk::bus::i2c::LockState*>(ctx->transaction);
+    transaction->nostop = nostop;
 
     int32 written = PICO_ERROR_GENERIC;
     if(transaction->active == false) {
@@ -430,8 +437,10 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
         
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
 
-        transaction->active = false;
-        ::mutex_exit(mutex);
+        if(nostop == false) {
+            transaction->active = false;
+            ::mutex_exit(mutex);
+        }
     } else {
         written = ::i2c_write_timeout_us(instance, addr, src, len, nostop, timeout_us);
     }
@@ -462,7 +471,7 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
     HTRACE("[I2C    ] Timeout      : %dus", timeout_us);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Write completed successfully");
+    HDEBUG("[I2C    ] Write complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -508,6 +517,7 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
     }
 
     auto *transaction = static_cast<hkk::bus::i2c::LockState*>(ctx->transaction);
+    transaction->nostop = nostop;
 
     int32 read = PICO_ERROR_GENERIC;
     if(transaction->active == false) {
@@ -517,8 +527,10 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
         
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
 
-        transaction->active = false;
-        ::mutex_exit(mutex);
+        if(nostop == false) {
+            transaction->active = false;
+            ::mutex_exit(mutex);
+        }
     } else {
         read = ::i2c_read_timeout_us(instance, addr, dst, len, nostop, timeout_us);
     }
@@ -548,7 +560,7 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
     HDEBUG("[I2C    ] Bytes read   : %d", read);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Read completed successfully");
+    HDEBUG("[I2C    ] Read complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
@@ -623,29 +635,28 @@ static int8 transaction_fn(void *ctx_raw, void *owner) {
     // But why would you want to begin transaction without it?
     if(!ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
-
-        ctx->status = I2C_ERROR_NULL_INSTANCE;
-        return ctx->status;
+        return ctx->status = I2C_ERROR_NULL_INSTANCE;
     }
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
         HERROR("[I2C    ] Null I2C mutex in context");
-
-        ctx->status = I2C_ERROR_NULL_MUTEX;
-        return ctx->status;
+        return ctx->status = I2C_ERROR_NULL_MUTEX;
     }
 
     auto *transaction = static_cast<LockState*>(ctx->transaction);
 
     if(transaction->active && transaction->owner == owner) {
-        HWARN("[I2C    ] Transaction already active for this owner: %p", transaction->owner);
+        if(transaction->nostop == true) {
+            HTRACE("[I2C    ] Transaction keep alive for owner: %p", transaction->owner);
+            return ctx->status = I2C_KEEP_ALIVE;
+        }
 
-        ctx->status = I2C_ERROR_BUSY;
-        return ctx->status;
+        HWARN("[I2C    ] Transaction already active for this owner: %p", transaction->owner);
+        return ctx->status = I2C_ERROR_BUSY;
     } 
 
     if(transaction->active && transaction->owner != owner) {
-        HWARN("[I2C    ] Transaction already active for another owner: %p", transaction->owner);
+        HWARN("[I2C    ] Transaction already active for another owner: %p (%p)", transaction->owner, owner);
         ctx->status = I2C_ERROR_BUSY;
     }
 
@@ -675,32 +686,29 @@ static int8 commit_fn(void *ctx_raw, void *owner) {
     // But why would you want to commit transaction without it?
     if(!ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
-
-        ctx->status = I2C_ERROR_NULL_INSTANCE;
-        return ctx->status;
+        return ctx->status = I2C_ERROR_NULL_INSTANCE;
     }
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
         HERROR("[I2C    ] Null I2C mutex in context");
-
-        ctx->status = I2C_ERROR_NULL_MUTEX;
-        return ctx->status;
+        return ctx->status = I2C_ERROR_NULL_MUTEX;
     }
 
     auto *transaction = static_cast<LockState*>(ctx->transaction);
 
     if(transaction->active == false) {
         HWARN("[I2C    ] No transaction in progress");
-
-        ctx->status = I2C_OK;
-        return ctx->status;
+        return ctx->status = I2C_OK;
     } 
 
     if(transaction->active && transaction->owner != owner) {
-        HWARN("[I2C    ] Transaction already active for another owner: %p", transaction->owner);
+        HWARN("[I2C    ] Transaction already active for another owner: %p (%p)", transaction->owner, owner);
+        return ctx->status = I2C_ERROR_BUSY;
+    }
 
-        ctx->status = I2C_ERROR_BUSY;
-        return ctx->status;
+    if(transaction->active && transaction->nostop == true) {
+        HTRACE("[I2C    ] Transaction keep alive for owner: %p", transaction->owner);
+        return ctx->status = I2C_KEEP_ALIVE;
     }
 
     void *old_owner = transaction->owner;

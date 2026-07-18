@@ -64,7 +64,7 @@ public:
         if(status == NVM_OK && commit_fn != nullptr && ctx != nullptr) {
             commit_fn(ctx, owner);
         } else {
-            HERROR("[NVM    ] Transaction function not implemented");
+            HFATAL("[NVM    ] Transaction function not implemented");
         }
     }
 };
