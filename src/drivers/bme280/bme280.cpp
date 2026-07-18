@@ -1,8 +1,73 @@
 #include <hkk/drivers/bme280/bme280.hpp>
 
 #include <cstring>
+#include <cmath>
 
 namespace hkk::bme280 {
+
+int8 BME280::setup(void) {
+    HTRACE("bme280.cpp -> BME280::setup(-):int8");
+    return this->setup(this->ctx);
+}
+
+int8 BME280::setup(Context &res) {
+    HTRACE("bme280.cpp -> BME280::setup(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < BME280_OK) return res.status = status;
+
+    int8 status = BME280_OK;
+
+    status = this->init(res);
+    if(status < BME280_OK) return res.status = status;
+
+    return res.status = status;
+}
+
+int8 BME280::process(void) {
+    HTRACE("bme280.cpp -> process(-):int8");
+    return this->process(this->ctx);
+}
+
+int8 BME280::process(Context &res) {
+    HTRACE("bme280.cpp -> process(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < BME280_OK) return res.status = status;
+
+    int8 status = BME280_OK;
+
+    status = this->measure(res);
+    if(status < BME280_OK) return res.status = status;
+
+    int32 raw_temperature = (res.temperature_raw_data[0] << 12) | (res.temperature_raw_data[1] << 4) | (res.temperature_raw_data[2] >> 4);
+    int32 raw_pressure    = (res.pressure_raw_data[0]    << 12) | (res.pressure_raw_data[1]    << 4) | (res.pressure_raw_data[2]    >> 4);
+    int32 raw_humidity    = (res.humidity_raw_data[0]    <<  8) |  res.humidity_raw_data[1];
+
+    // IT MUST BE IN THIS ORDER
+    int32 t_fine = 0;
+    int32 temperature = BME280::compensate_temperature(res, t_fine, raw_temperature);
+    int32 pressure    = BME280::compensate_pressure(res, t_fine, raw_pressure);
+    int32 humidity    = BME280::compensate_humidity(res, t_fine, raw_humidity);
+
+    res.pressure    = (pressure / 256.0) / 100.0;
+    res.temperature = (temperature / 100.0);
+    res.humidity    = (humidity / 1024.0);
+
+    res.absolute_humidity = this->calculate_absolute_humidity(res);
+    res.dew_point = this->calculate_dew_point(res);
+
+    return res.status = status;
+}
+
+int8 BME280::status(void) {
+    HTRACE("bme280.cpp -> BME280::status(-):int8");
+    return this->status(this->ctx);
+}
+
+int8 BME280::status(Context &res) {
+    HTRACE("bme280.cpp -> BME280::status(Context&):int8");
+    if(int8 status = this->sensor_enabled(); status < BME280_OK) return res.status = status;
+
+    return res.status;
+}
+
 
 int8 BME280::write_register(Register reg, uint8 *data, size_t len) {
     HTRACE("bme280.cpp -> BME280::write_register(Register, uint8*, size_t):int8");
@@ -75,6 +140,123 @@ int8 BME280::read_register(uint8 addr, Register reg, uint8 *data, size_t len) {
 
     return status;
 }
+
+float64 BME280::calculate_absolute_humidity(void) {
+    HTRACE("bme280.cpp -> BME280::absolute_humidty(-):float64");
+    return this->calculate_absolute_humidity(this->ctx);
+}
+
+float64 BME280::calculate_absolute_humidity(float64 humidity, float64 temperature) {
+    HTRACE("bme280.cpp -> BME280::absolute_humidty(float64, float64):float64");
+
+    this->ctx.temperature = temperature;
+    this->ctx.humidity = humidity;
+
+    return this->calculate_absolute_humidity(this->ctx);
+}
+
+float64 BME280::calculate_absolute_humidity(Context &res) {
+    HTRACE("bme280.cpp -> BME280::absolute_humidty(Context&):float64");
+    
+    // Magnus-Tetens approximation
+    float64 saturation = (SATURATION_VAPOR_PRESSURE * std::exp((MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature)));
+    float64 pressure = saturation * (res.humidity / 100.0);    
+    float64 vapor_deficit = (saturation - pressure) / 1000.0;   // kPa
+    
+    float64 absolute_humidity = ((pressure * WATER_MOLAR_MASS) / (WATER_VAPOR_GAS_CONST * (res.temperature + CELSIUS_KELVIN_OFFSET)));  // kg/m3
+    absolute_humidity = (absolute_humidity * 1000.0); // g/m3
+
+    HTRACE("[BME280  ] Actual vapor pressure    : %3.3f Pa", pressure);
+    HTRACE("[BME280  ] Saturation vapor pressure: %3.3f Pa", saturation);
+    HTRACE("[BME280  ] Vapor pressure defficit  : %3.3f kPa", vapor_deficit);
+    HTRACE("[BME280  ] Absolute humidity        : %3.3f g/m3", absolute_humidity);
+
+    res.vapor_pressure = pressure;                  // Pa
+    res.saturation_vapor_pressure = saturation;     // Pa
+    res.vapor_pressure_deficit = vapor_deficit;     // kPa
+
+    res.absolute_humidity = absolute_humidity;      // g/m3
+    return absolute_humidity;
+}
+
+float64 BME280::calculate_dew_point(void) {
+    HTRACE("bme280.cpp -> BME280::calculate_dew_point(-):float64");
+    return this->calculate_dew_point(this->ctx);
+}
+
+float64 BME280::calculate_dew_point(float64 humidity, float64 temperature) {
+    HTRACE("bme280.cpp -> BME280::calculate_dew_point(float64, float64):float64");
+
+    this->ctx.temperature = temperature;
+    this->ctx.humidity = humidity;
+
+    return this->calculate_dew_point(this->ctx);
+}
+
+float64 BME280::calculate_dew_point(Context &res) {
+    HTRACE("bme280.cpp -> BME280::calculate_dew_point(Context&):float64");
+
+    float64 gamma = (std::log(res.humidity / 100) + (MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature));
+    float64 dew_point = ((TEMPERATURE_COEFFICIENT * gamma) / (MAGNUS_COEFFICIENT - gamma));
+
+    HTRACE("[BME280  ] Gamma    : %3.3f", gamma);
+    HTRACE("[BME280  ] Dew point: %3.3f *C", dew_point);
+
+    return dew_point;
+}
+
+
+float64 BME280::humidity(bool8 absolute_humidity) {
+    HTRACE("bme280.cpp -> BME280::humidity(bool8 = false):float64");
+    return (absolute_humidity == true) ? this->ctx.absolute_humidity : this->ctx.humidity;
+} 
+
+void BME280::humidity(Context &res) {
+    HTRACE("bme280.cpp -> BME280::humidity(Context&):void");
+    
+    res.humidity = this->ctx.humidity;
+    res.absolute_humidity = this->ctx.absolute_humidity;
+}
+    
+float64 BME280::temperature(void) {
+    HTRACE("bme280.cpp -> BME280::temperature(-):float64");
+    return this->ctx.temperature;
+} 
+
+void BME280::temperature(Context &res) {
+    HTRACE("bme280.cpp -> BME280::temperature(Context&):void");
+    res.temperature = this->ctx.temperature;
+}
+
+float64 BME280::dew_point(void) {
+    HTRACE("bme280.cpp -> BME280::dew_point(-):float64");
+    return this->ctx.dew_point;
+} 
+
+void BME280::dew_point(Context &res) {
+    HTRACE("bme280.cpp -> BME280::dew_point(Context&):void");
+    res.dew_point = this->ctx.dew_point;
+}
+
+float64 BME280::vapor(Vapor type) {
+    HTRACE("bme280.cpp -> BME280::vapor(Vapor):float64");
+    
+    switch(type) {
+        case Vapor::Deficit:    return this->ctx.vapor_pressure_deficit;
+        case Vapor::Pressure:   return this->ctx.vapor_pressure;
+        case Vapor::Saturation: return this->ctx.saturation_vapor_pressure;
+        default: return static_cast<float64>(BME280_ERROR_GENERIC);   
+    }
+} 
+
+void BME280::vapor(Context &res) {
+    HTRACE("bme280.cpp -> BME280::vapor(Context&):void");
+    
+    res.vapor_pressure_deficit = this->ctx.vapor_pressure_deficit;
+    res.vapor_pressure = this->ctx.vapor_pressure;
+    res.saturation_vapor_pressure = this->ctx.saturation_vapor_pressure;
+}
+
 
 
 int8 BME280::write_bus(uint8 data, bool8 nostop) {
@@ -172,6 +354,55 @@ int8 BME280::read_bus(uint8 addr, uint8 *data, size_t len, bool8 nostop) {
     }
 
     return BME280_ERROR_GENERIC;    // It should never get here
+}
+
+// Official Bosch implementation
+int32 BME280::compensate_temperature(const Context &res, int32 &t_fine, int32 raw_temperature) {
+    HTRACE("bme280.cpp -> s:BME280::compensate_temperature(Context&, int32&, int32):int8");
+    
+    int32 var1, var2, T;
+    var1 = ((((raw_temperature >> 3)  - ((int32) res.calibration.dig_T1 << 1))) * ((int32) res.calibration.dig_T2)) >> 11;
+    var2 = (((((raw_temperature >> 4) - ((int32) res.calibration.dig_T1)) * ((raw_temperature >> 4) - ((int32) res.calibration.dig_T1))) >> 12) * ((int32) res.calibration.dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    T = (t_fine * 5 + 128) >> 8;
+    return T;   // Celsius, 0.01 resolution, `2137` equals 21.37 *C`
+}
+
+// Official Bosch implementation
+uint32 BME280::compensate_pressure(const Context &res, int32 t_fine, int32 raw_pressure) {
+    int64 var1, var2, p;
+    var1 = ((int64) t_fine) - 128000;
+    var2 = var1 * var1 * (int64)res.calibration.dig_P6;
+    var2 = var2 + ((var1 * (int64)res.calibration.dig_P5) << 17);
+    var2 = var2 + (((int64)res.calibration.dig_P4) << 35);
+    var1 = ((var1 * var1 * (int64)res.calibration.dig_P3) >> 8) + ((var1 * (int64)res.calibration.dig_P2) << 12);
+    var1 = (((((int64)1) << 47) + var1)) * ((int64)res.calibration.dig_P1) >> 33;
+    if(var1 == 0) return 0; // avoid exception caused by division by zero
+
+    p = 1048576 - raw_pressure;
+    p = (((p << 31) - var2) * 3125) / var1;
+    var1 = (((int64)res.calibration.dig_P9) * (p >> 13) * (p >> 13)) >> 25;
+    var2 = (((int64)res.calibration.dig_P8) * p) >> 19;
+    p = ((p + var1 + var2) >> 8) + (((int64)res.calibration.dig_P7) << 4);
+    return (uint32)(p);  // Q24.8 format, `24674867` equals to `24674867/256 == 96386.2 Pa == 963.862 hPa`
+}
+
+// Official Bosch implementation
+uint32 BME280::compensate_humidity(const Context &res, int32 t_fine, int32 raw_humidity) {
+    int32 v_x1_u32r;
+    v_x1_u32r = (t_fine - ((int32)76800));
+
+    // What the fuck is going on here???
+    v_x1_u32r = (((((raw_humidity << 14) - (((int32)res.calibration.dig_H4) << 20) - (((int32)res.calibration.dig_H5) * v_x1_u32r)) +
+                    ((int32)16384)) >> 15) * (((((((v_x1_u32r * ((int32)res.calibration.dig_H6)) >> 10) *
+                    (((v_x1_u32r * ((int32)res.calibration.dig_H3)) >> 11) +
+                    ((int32)32768))) >> 10) + ((int32)2097152)) *
+                    ((int32)res.calibration.dig_H2) + 8192) >> 14));
+
+    v_x1_u32r = (v_x1_u32r - (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) * ((int32)res.calibration.dig_H1)) >> 4));
+    v_x1_u32r = (v_x1_u32r < 0 ? 0 : v_x1_u32r);
+    v_x1_u32r = (v_x1_u32r > 419430400 ? 419430400 : v_x1_u32r);
+    return (uint32)(v_x1_u32r >> 12);  // Q22.10 format, `47445` equals to `47445/1024 == 46.333 %RH`
 }
 
 }

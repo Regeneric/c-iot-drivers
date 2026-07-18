@@ -3,11 +3,25 @@
 
 namespace hkk::bme280 {
 
-inline constexpr size_t CALIB00_DATA_FRAME      = (size_t)(26);
-inline constexpr size_t CALIB26_DATA_FRAME      = (size_t)(7);
+inline constexpr size_t CALIB00_DATA_FRAME            = (size_t)(26);
+inline constexpr size_t CALIB26_DATA_FRAME            = (size_t)(7);
 
-inline constexpr size_t JUMBO_DATA_FRAME_LENGTH = (size_t)(20);
-inline constexpr size_t DATA_FRAME_LENGTH       = (size_t)(16);
+inline constexpr size_t JUMBO_DATA_FRAME_LENGTH       = (size_t)(20);
+inline constexpr size_t DATA_FRAME_LENGTH             = (size_t)(16);
+
+inline constexpr size_t PRESSURE_DATA_FRAME_LENGTH    = (size_t)(3);
+inline constexpr size_t TEMPERATURE_DATA_FRAME_LENGTH = (size_t)(3);
+inline constexpr size_t HUMIDITY_DATA_FRAME_LENGTH    = (size_t)(2);
+
+inline constexpr uint8  OPERATON_MODE_MASK            = (uint8)(0x03);
+
+inline constexpr float64 SATURATION_VAPOR_PRESSURE    = (float64)(611.2);
+inline constexpr float64 MAGNUS_COEFFICIENT           = (float64)(17.62);
+inline constexpr float64 TEMPERATURE_COEFFICIENT      = (float64)(243.5);
+inline constexpr float64 WATER_MOLAR_MASS             = (float64)(0.01802);
+inline constexpr float64 WATER_VAPOR_GAS_CONST        = (float64)(8.314);
+inline constexpr float64 CELSIUS_KELVIN_OFFSET        = (float64)(273.15);
+
 
 // 5.4 Register description
 enum Command : uint8 {
@@ -167,11 +181,11 @@ struct Context {
     float64 saturation_vapor_pressure;
     float64 vapor_pressure_deficit;
 
-    uint8 *pressure_raw_data[JUMBO_DATA_FRAME_LENGTH];
-    uint8 *temperature_raw_data[JUMBO_DATA_FRAME_LENGTH];
-    
-    uint8 *humidity_raw_data[DATA_FRAME_LENGTH];
+    uint8 pressure_raw_data[PRESSURE_DATA_FRAME_LENGTH];
+    uint8 temperature_raw_data[TEMPERATURE_DATA_FRAME_LENGTH];
+    uint8 humidity_raw_data[HUMIDITY_DATA_FRAME_LENGTH];
 
+    uint8 operation_mode;
     int8 status = BME280_OK;
 };
 

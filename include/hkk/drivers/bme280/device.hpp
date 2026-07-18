@@ -18,7 +18,7 @@ public:
     int8 init(Context &res);
 
     int8 measure(void);
-    int8 measure(Context* &res);
+    int8 measure(Context &res);
 
     int8 calibrate(void);
     int8 calibrate(Context &res);
@@ -26,15 +26,18 @@ public:
     int8 get_sensor_id(void);
     int8 get_sensor_id(Context &res);
 
-    int8 soft_reset(void);
-    int8 soft_reset(Context &res);
-
 
     int8 setup(void);
     int8 setup(Context &res);
 
     int8 process(void);
     int8 process(Context &res);
+
+    int8 status(void);
+    int8 status(Context &res);
+
+    int8 soft_reset(void);
+    int8 soft_reset(Context &res);
 
     int8 write_register(Register reg, uint8 value);
     int8 write_register(Register reg, uint8 *data, size_t len);
@@ -77,6 +80,18 @@ private:
 
     int8 read_bus(uint8 *data, size_t len, bool8 nostop = false);
     int8 read_bus(uint8 addr, uint8 *data, size_t len, bool8 nostop = false);
+
+    static int32  compensate_temperature(const Context &res, int32 &t_fine, int32 raw_temperature);
+    static uint32 compensate_pressure(const Context &res, int32 t_fine, int32 raw_pressure);
+    static uint32 compensate_humidity(const Context &res, int32 t_fine, int32 raw_humidity); 
+
+    float64 calculate_absolute_humidity(void);
+    float64 calculate_absolute_humidity(float64 humidity, float64 temperature);
+    float64 calculate_absolute_humidity(Context &res);
+    
+    float64 calculate_dew_point(void);
+    float64 calculate_dew_point(float64 humidity, float64 temperature);
+    float64 calculate_dew_point(Context &res);
 
     int8 sensor_enabled(void) {
         if(!this->cfg.enable) {

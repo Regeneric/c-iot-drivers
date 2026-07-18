@@ -24,7 +24,8 @@ int8 DHT20::setup(Context &res) {
 
     // 7.4.1 Sensor Reading Process
     hkk::utils::sleep_ms(100);
-    this->init(res);
+    status = this->init(res);
+    if(status < DHT20_OK) return res.status = status;
 
     // 7.4.2 Sensor Reading Process
     hkk::utils::sleep_ms(10);
@@ -55,6 +56,11 @@ int8 DHT20::process(Context &res) {
     res.dew_point = this->calculate_dew_point(res);
 
     return res.status = status;
+}
+
+int8 DHT20::status(void) {
+    HTRACE("dht20.cpp -> DHT20::status(-):int8");
+    return this->status(this->ctx);
 }
 
 int8 DHT20::status(Context &res) {
@@ -261,12 +267,12 @@ int8 DHT20::validate_i2c_error(int8 error) {
 }
 
 float64 DHT20::calculate_absolute_humidity(void) {
-    HTRACE("dh20.cpp -> DHT20::absolute_humidty(-):float64");
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(-):float64");
     return this->calculate_absolute_humidity(this->ctx);
 }
 
 float64 DHT20::calculate_absolute_humidity(float64 humidity, float64 temperature) {
-    HTRACE("dh20.cpp -> DHT20::absolute_humidty(float64, float64):float64");
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(float64, float64):float64");
 
     this->ctx.temperature = temperature;
     this->ctx.humidity = humidity;
@@ -275,7 +281,7 @@ float64 DHT20::calculate_absolute_humidity(float64 humidity, float64 temperature
 }
 
 float64 DHT20::calculate_absolute_humidity(Context &res) {
-    HTRACE("dh20.cpp -> DHT20::absolute_humidty(Context&):float64");
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(Context&):float64");
     
     // Magnus-Tetens approximation
     float64 saturation = (SATURATION_VAPOR_PRESSURE * std::exp((MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature)));
@@ -299,12 +305,12 @@ float64 DHT20::calculate_absolute_humidity(Context &res) {
 }
 
 float64 DHT20::calculate_dew_point(void) {
-    HTRACE("dh20.cpp -> DHT20::calculate_dew_point(-):float64");
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(-):float64");
     return this->calculate_dew_point(this->ctx);
 }
 
 float64 DHT20::calculate_dew_point(float64 humidity, float64 temperature) {
-    HTRACE("dh20.cpp -> DHT20::calculate_dew_point(float64, float64):float64");
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(float64, float64):float64");
 
     this->ctx.temperature = temperature;
     this->ctx.humidity = humidity;
@@ -313,7 +319,7 @@ float64 DHT20::calculate_dew_point(float64 humidity, float64 temperature) {
 }
 
 float64 DHT20::calculate_dew_point(Context &res) {
-    HTRACE("dh20.cpp -> DHT20::calculate_dew_point(Context&):float64");
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(Context&):float64");
 
     float64 gamma = (std::log(res.humidity / 100) + (MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature));
     float64 dew_point = ((TEMPERATURE_COEFFICIENT * gamma) / (MAGNUS_COEFFICIENT - gamma));
@@ -326,7 +332,7 @@ float64 DHT20::calculate_dew_point(Context &res) {
 
 
 float64 DHT20::humidity(bool8 absolute_humidity) {
-    HTRACE("dh20.cpp -> DHT20::humidity(bool8 = false):float64");
+    HTRACE("dht20.cpp -> DHT20::humidity(bool8 = false):float64");
     return (absolute_humidity == true) ? this->ctx.absolute_humidity : this->ctx.humidity;
 } 
 
@@ -338,7 +344,7 @@ void DHT20::humidity(Context &res) {
 }
     
 float64 DHT20::temperature(void) {
-    HTRACE("dh20.cpp -> DHT20::temperature(-):float64");
+    HTRACE("dht20.cpp -> DHT20::temperature(-):float64");
     return this->ctx.temperature;
 } 
 
@@ -348,7 +354,7 @@ void DHT20::temperature(Context &res) {
 }
 
 float64 DHT20::dew_point(void) {
-    HTRACE("dh20.cpp -> DHT20::dew_point(-):float64");
+    HTRACE("dht20.cpp -> DHT20::dew_point(-):float64");
     return this->ctx.dew_point;
 } 
 
@@ -358,7 +364,7 @@ void DHT20::dew_point(Context &res) {
 }
 
 float64 DHT20::vapor(Vapor type) {
-    HTRACE("dh20.cpp -> DHT20::vapor(Vapor):float64");
+    HTRACE("dht20.cpp -> DHT20::vapor(Vapor):float64");
     
     switch(type) {
         case Vapor::Deficit:    return this->ctx.vapor_pressure_deficit;
