@@ -33,11 +33,6 @@ int8 DHT20::setup(Context &res) {
     return res.status = status;
 }
 
-int8 DHT20::status(void) {
-    HTRACE("dht20.cpp -> DHT20::status(-):int8");
-    return this->status(this->ctx);
-}
-
 int8 DHT20::process(void) {
     HTRACE("dht20.cpp -> DHT20::process(-):int8");
     return this->process(this->ctx);
@@ -50,7 +45,7 @@ int8 DHT20::process(Context &res) {
     int8 status = DHT20_OK;
 
     status = this->measure(res);
-    if(status < hkk::dht20::DHT20_OK) return res.status = status;
+    if(status < DHT20_OK) return res.status = status;
 
     res.absolute_humidity = this->calculate_absolute_humidity(res);
     res.dew_point = this->calculate_dew_point(res);

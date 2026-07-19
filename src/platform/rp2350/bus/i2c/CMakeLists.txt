@@ -3,7 +3,7 @@ add_library(hkk_bus_i2c_rp2350
         i2c.cpp
 )
 
-add_library(hkk::rp2350::bus_i2c ALIAS hkk_bus_i2c_rp2350)
+add_library(hkk::rp2350::bus::i2c ALIAS hkk_bus_i2c_rp2350)
 
 target_include_directories(hkk_bus_i2c_rp2350 
     PUBLIC

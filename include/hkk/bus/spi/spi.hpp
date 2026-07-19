@@ -102,8 +102,8 @@ struct ConfigContext {
 };
 
 struct BackendTable {
-    int8 (*init_fn)(void *ctx) = nullptr;
-    int8 (*deinit_fn)(void *ctx) = nullptr;
+    int8  (*init_fn)(void *ctx) = nullptr;
+    int8  (*deinit_fn)(void *ctx) = nullptr;
     
     int8  (*set_baudrate_fn)(void *ctx, uint32 value) = nullptr;
     int32 (*get_baudrate_fn)(void *ctx) = nullptr;

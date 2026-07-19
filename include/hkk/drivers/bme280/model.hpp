@@ -198,7 +198,7 @@ struct Config {
     uint8 temperature_pressure_mode;
 
     const char *name = nullptr;
-    const char *locaton = nullptr;
+    const char *location = nullptr;
 };
 
 }

@@ -19,14 +19,11 @@ static int8 deinit_fn(void *ctx_raw) {
         HERROR("[I2C    ] Null context passed to function");
         return hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT;
     }
-
     auto *ctx = static_cast<hkk::bus::i2c::ConfigContext*>(ctx_raw);
 
     if(!ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
-
-        ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE;
-        return ctx->status;
+        return ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE;
     } 
     ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
@@ -45,13 +42,12 @@ static int8 deinit_fn(void *ctx_raw) {
         ::mutex_exit(static_cast<::mutex_t*>(ctx->transaction->mutex));
     }
 
-    HINFO("[I2C    ] I2C%d deinitialization successful", ctx->index);
+    HINFO("[I2C    ] I2C%d deinitialized", ctx->index);
 
     ctx->index  = -1;
     HDEBUG("[I2C    ] Instance index set to %d", ctx->index);
 
-    ctx->status = hkk::bus::i2c::I2C_OK;
-    return ctx->status;
+    return ctx->status = hkk::bus::i2c::I2C_OK;
 }
 
 static int8 init_fn(void *ctx_raw) {
@@ -61,14 +57,11 @@ static int8 init_fn(void *ctx_raw) {
         HERROR("[I2C    ] Null context passed to function");
         return hkk::bus::i2c::I2C_ERROR_NULL_CONTEXT;
     }
-
     auto *ctx = static_cast<hkk::bus::i2c::ConfigContext*>(ctx_raw);
 
     if(!ctx->instance) {
         HERROR("[I2C    ] Null I2C instance in context");
-
-        ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE;
-        return ctx->status;
+        return ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_INSTANCE;
     } 
     ::i2c_inst *instance = static_cast<::i2c_inst*>(ctx->instance);
 
@@ -80,23 +73,18 @@ static int8 init_fn(void *ctx_raw) {
     ::gpio_pull_up(ctx->sda);
     ::gpio_pull_up(ctx->scl);
 
-    uint8 index = ::i2c_get_index(instance);
-    ctx->index = static_cast<int8>(index);
+    ctx->index = static_cast<int8>(::i2c_get_index(instance));
 
     if(ctx->index != 0 && ctx->index != 1) {
         HERROR("[I2C    ] Invalid I2C instance index: %d", ctx->index);
-        
-        ctx->status = hkk::bus::i2c::I2C_ERROR_GENERIC;
-        return ctx->status;
+        return ctx->status = hkk::bus::i2c::I2C_ERROR_GENERIC;
     }
 
     if(!ctx->transaction || !ctx->transaction->mutex) {
         HERROR("[I2C    ] Null I2C mutex in context");
         
         deinit_fn(ctx_raw);
-
-        ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_MUTEX;
-        return ctx->status;
+        return ctx->status = hkk::bus::i2c::I2C_ERROR_NULL_MUTEX;
     }
     ::mutex_init(static_cast<::mutex_t*>(ctx->transaction->mutex));
 
@@ -104,10 +92,8 @@ static int8 init_fn(void *ctx_raw) {
     HDEBUG("[I2C    ] SCL pin: %d", ctx->scl);
     HDEBUG("[I2C    ] Baud rate set to %d kHz", (ctx->baudrate / 1000));
 
-    HINFO("[I2C    ] I2C%d initialization successful", ctx->index);
-    
-    ctx->status = hkk::bus::i2c::I2C_OK;
-    return ctx->status;
+    HINFO("[I2C    ] I2C%d initialized", ctx->index);
+    return ctx->status = hkk::bus::i2c::I2C_OK;
 }
 
 static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
@@ -147,7 +133,7 @@ static int8 set_baudrate_fn(void *ctx_raw, uint32 value) {
     if(baudrate != value) {
         HWARN("[I2C    ] Actual baud rate differs from desired baud rate");
         HWARN("[I2C    ] Desired: %d kHz", (ctx->baudrate / 1000));
-        HWARN("[I2C    ] Actual : %d kHz", (baudrate/1000));
+        HWARN("[I2C    ] Actual : %d kHz", (baudrate / 1000));
     }
 
     ctx->baudrate = baudrate;
