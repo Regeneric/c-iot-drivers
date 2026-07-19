@@ -17,7 +17,6 @@ int8 PMS5003::measure(void) {
 int8 PMS5003::measure(Context &res) {
     HTRACE("commands.cpp -> PMS5003::measure(Context&):int8");
     if(int8 status = this->sensor_enabled(); status < PMS5003_OK) return res.status = status;
-    if(res.operation_mode == Mode::Active) return res.status = PMS5003_OK;
 
     int8 status = PMS5003_OK;
 
@@ -27,6 +26,9 @@ int8 PMS5003::measure(Context &res) {
             HERROR("[PMS5003] Could not send measure command");
             return res.status = status;
         }
+
+        // TODO: header validation instead of sleep
+        hkk::utils::sleep_ms(1);
     }
 
     status = this->read_raw_data(res.raw_data, DATA_FRAME_LENGTH);
@@ -35,7 +37,7 @@ int8 PMS5003::measure(Context &res) {
         return res.status = status;
     }
 
-    status = PMS5003::crc_validate(res.raw_data, DATA_FRAME_LENGTH);
+    status = PMS5003::checksum_validate(res.raw_data, DATA_FRAME_LENGTH);
     if(status < PMS5003_OK) {
         HERROR("[PMS5003] Read sensor data fail");
         return res.status = status;
@@ -79,6 +81,7 @@ int8 PMS5003::mode(Context &res) {
         HDEBUG("[PMS5003] Value: 0x%02X", res.operation_mode);
     } 
 
+    HDEBUG("[PMS5003] Mode set to 0x%02X", res.operation_mode);
     return res.status = status;
 }
     
@@ -86,7 +89,7 @@ int8 PMS5003::sleep(const Power mode) {
     HTRACE("commands.cpp -> PMS5003::sleep(-):int8");
 
     this->ctx.sleep_mode = mode;
-    return this->mode(this->ctx);
+    return this->sleep(this->ctx);
 }
 
 int8 PMS5003::sleep(Context &res) {
@@ -102,6 +105,7 @@ int8 PMS5003::sleep(Context &res) {
         HDEBUG("[PMS5003] Value: 0x%02X", res.sleep_mode);
     } 
 
+    HDEBUG("[PMS5003] Power mode set to 0x%02X", res.sleep_mode);
     return res.status = status;
 }
 

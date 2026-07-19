@@ -6,53 +6,61 @@
 
 namespace hkk::pms5003 {
 
-int8 PMS5003::crc_calculate(uint16 &checksum, uint8 *data, size_t len) {
+int8 PMS5003::checksum_calculate(uint16 &checksum, uint8 *data, size_t len) {
     HTRACE("pms5003.cpp -> crc_calculate(uint8&, uint8*, size_t):int8");
 
-    if(len == 0) {
-        HERROR("[PMS5003  ] Data frame length invalid");
+    if(!data) {
+        HERROR("[PMS5003] Null data pointer passed to function");
+        return PMS5003_ERROR_NULL_DATA;
+    }
+
+    if(len < 2) {
+        HERROR("[PMS5003] Data frame length invalid");
         return PMS5003_ERROR_CRC;
     }
 
     uint16 crc = 0;
 
-    if(len < DATA_FRAME_LENGTH) for(size_t i = 0; i != (len - 2); ++i) crc += data[i];     // We need to calculate the sum of the first 6 bytes of the command frame
-    else for(size_t i = 0; i != (len - 2); ++i) crc += data[i];                               // We need to calculate the sum of the first 30 bytes of the data frame
+    for(size_t i = 0; i != (len - 2); ++i) crc += data[i];                           // We need to calculate the sum of the first 30 bytes of the data frame
 
     checksum = crc;
-    HTRACE("[PMS5003  ] Checksum calculated: 0x%02X", checksum);
+    HTRACE("[PMS5003] Checksum calculated: 0x%04X", checksum);
 
     return PMS5003_OK;
 }
 
-int8 PMS5003::crc_validate(uint8 *data, size_t len) {
+int8 PMS5003::checksum_validate(uint8 *data, size_t len) {
     HTRACE("pms5003.cpp -> crc_validate(uint8*, size_t):int8");
 
-    int8 status = PMS5003_OK;
+    if(!data) {
+        HERROR("[PMS5003] Null data pointer passed to function");
+        return PMS5003_ERROR_NULL_DATA;
+    }
 
-    if(len == 0) {
-        HERROR("[PMS5003  ] Data frame length invalid");
+    if(len < 2) {
+        HERROR("[PMS5003] Data frame length invalid");
         return PMS5003_ERROR_CRC;
     }
+
+    int8 status = PMS5003_OK;
 
     uint16 crc = 0;
     uint16 pms_crc = 0;
 
-    if(len < DATA_FRAME_LENGTH) pms_crc = ((data[len - 2] << 8) | data[len - 1]);
-    else pms_crc = ((data[len - 2] << 8) | data[len - 1]);
+    pms_crc = ((data[len - 2] << 8) | data[len - 1]);
 
-    status = crc_calculate(crc, data, len);
+    status = checksum_calculate(crc, data, len);
     if(status < PMS5003_OK) return status;
 
     if(crc != pms_crc) {
-        HWARN ("[PMS5003  ] Checksum invalid");
-        HTRACE("[PMS5003  ] Expected: 0x%02X", pms_crc);
-        HTRACE("[PMS5003  ] Got: 0x%02X", crc);
+        HWARN ("[PMS5003] Checksum invalid");
+        HTRACE("[PMS5003] Expected: 0x%04X", pms_crc);
+        HTRACE("[PMS5003] Got: 0x%04X", crc);
 
         return PMS5003_ERROR_CRC;
     }
 
-    HTRACE("[PMS5003  ] Checksum valid");
+    HTRACE("[PMS5003] Checksum valid");
     return status;
 }
 

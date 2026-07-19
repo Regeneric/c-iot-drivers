@@ -19,6 +19,8 @@ struct DMAContext {
     bool8 tx_active  = false;
 };
 
+// TODO: working DMA
+
 static int8 init_dma_fn(void *ctx_raw) {
     HTRACE("uart.cpp -> s:init_dma_fn(void*):int8");
 

@@ -5,7 +5,7 @@
 namespace hkk::pms5003 {
 
 inline constexpr size_t DATA_FRAME_LENGTH    = (size_t)(32);
-inline constexpr size_t COMMAND_FRAME_LENGTH = (size_t)(8);
+inline constexpr size_t COMMAND_FRAME_LENGTH = (size_t)(7);
 inline constexpr size_t SECTION_FRAME_LENGTH = (size_t)(2);
 
 inline constexpr uint8 START_BYTE0 = (uint8)(0x42);

@@ -23,15 +23,15 @@ int8 PMS5003::setup(Context &res) {
     res.operation_mode = this->cfg.operation_mode;
     res.sleep_mode = this->cfg.sleep_mode;
 
-    status = this->mode(res.operation_mode);
-    if(status < PMS5003_OK) {
-        HERROR("[PMS5003] Sensor operation mode change fail");
-        return res.status = status;
-    }
-
     status = this->sleep(res.sleep_mode);
     if(status < PMS5003_OK) {
         HERROR("[PMS5003] Sensor sleep mode change fail");
+        return res.status = status;
+    }
+
+    status = this->mode(res.operation_mode);
+    if(status < PMS5003_OK) {
+        HERROR("[PMS5003] Sensor operation mode change fail");
         return res.status = status;
     }
 
@@ -69,7 +69,7 @@ int8 PMS5003::send_command(Command command, uint8 value) {
     uint16 crc = 0;
     uint8 payload[COMMAND_FRAME_LENGTH] = {START_BYTE0, START_BYTE1, command, 0x00, value};
 
-    status = PMS5003::crc_calculate(crc, payload, COMMAND_FRAME_LENGTH);
+    status = PMS5003::checksum_calculate(crc, payload, COMMAND_FRAME_LENGTH);
     if(status < PMS5003_OK) {
         HERROR("[PMS5003] Could not calculate data payload checksum");
         return status;
@@ -78,6 +78,10 @@ int8 PMS5003::send_command(Command command, uint8 value) {
     payload[COMMAND_FRAME_LENGTH - 2] = hkk::utils::msb(crc);
     payload[COMMAND_FRAME_LENGTH - 1] = hkk::utils::lsb(crc);
 
+    status = uart.write(payload);
+    if(status < hkk::bus::uart::UART_OK) return status;
+
+    HTRACE("[PMS5003] Command: 0x%02X", command);
     return status;
 }
 
@@ -185,8 +189,8 @@ uint16 PMS5003::pm1(bool8 ref) {
 void PMS5003::pm1(Context &res, bool8 ref) {
     HTRACE("pms5003.cpp -> PMS5003::pm1(Contex&, bool8 = false):void");
     
-    if(ref) res.pm1 = this->ctx.pm1;
-    else res.pm1_ref = this->ctx.pm1_ref;
+    if(ref) res.pm1_ref = this->ctx.pm1_ref;
+    else res.pm1 = this->ctx.pm1;
 }
 
 uint16 PMS5003::pm2_5(bool8 ref) {
@@ -197,8 +201,8 @@ uint16 PMS5003::pm2_5(bool8 ref) {
 void PMS5003::pm2_5(Context &res, bool8 ref) {
     HTRACE("pms5003.cpp -> PMS5003::pm2_5(Contex&, bool8 = false):void");
     
-    if(ref) res.pm2_5 = this->ctx.pm2_5;
-    else res.pm2_5_ref = this->ctx.pm2_5_ref;
+    if(ref) res.pm2_5_ref = this->ctx.pm2_5_ref;
+    else res.pm2_5 = this->ctx.pm2_5;
 }
 
 uint16 PMS5003::pm10(bool8 ref) {
@@ -209,8 +213,8 @@ uint16 PMS5003::pm10(bool8 ref) {
 void PMS5003::pm10(Context &res, bool8 ref) {
     HTRACE("pms5003.cpp -> PMS5003::pm10(Contex&, bool8 = false):void");
     
-    if(ref) res.pm10 = this->ctx.pm10;
-    else res.pm10_ref = this->ctx.pm10_ref;
+    if(ref) res.pm10_ref = this->ctx.pm10_ref;
+    else res.pm10 = this->ctx.pm10;
 }
 
 }

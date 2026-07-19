@@ -49,8 +49,8 @@ private:
     
     int8 compensate_humidity(Context &res, float64 humidity, float64 temperature);
 
-    static int8 crc_calculate(uint16 &checksum, uint8 *data, size_t len);
-    static int8 crc_validate(uint8 *data, size_t len);
+    static int8 checksum_calculate(uint16 &checksum, uint8 *data, size_t len);
+    static int8 checksum_validate(uint8 *data, size_t len);
 
     int8 sensor_enabled(void) {
         if(!this->cfg.enable) {
