@@ -5,6 +5,11 @@
 
 namespace hkk::bus::uart {   
 
+inline constexpr uint8 IRQ_0 = 0;
+inline constexpr uint8 IRQ_1 = 1;
+inline constexpr uint8 IRQ_2 = 2;
+inline constexpr uint8 IRQ_3 = 3;
+
 class UART;
 struct ConfigContext;
 struct BackendTable;
@@ -42,11 +47,24 @@ enum Result : int8 {
     UART_ERROR_BUSY               = -13,
     UART_DMA_ERROR_GENERIC        = -14,
     UART_ERROR_NULL_DMA_CONTEXT   = -15,
+    UART_ERROR_DMA                = -16,
+    UART_ERROR_NULL_DMA_INSTANCE  = -17,
     UART_ERROR_GENERIC            = -100,
     UART_FUNCTION_NOT_IMPLEMENTED = -101,
     UART_ERROR_UNKNOWN            = -102,
 };
 
+struct DMAContext {
+    int32 irq_index = -1;
+
+    int32 rx_channel = -1;
+    int32 tx_channel = -1;
+
+    uint8 irq;
+
+    bool8 rx_active  = false;
+    bool8 tx_active  = false;
+};
 
 struct ConfigContext {    
     void *instance;
@@ -61,8 +79,7 @@ struct ConfigContext {
     uint8  tx;
     uint8  rx;
 
-    bool8 rx_dma_enabled = false;
-    bool8 tx_dma_enabled = false;
+    bool8 dma_enable = false;
 
     int8 index = -1;
 
@@ -70,6 +87,8 @@ struct ConfigContext {
 };
 
 struct BackendTable {
+    int8  (*init_dma_fn)(void *ctx_raw) = nullptr;
+
     int8  (*init_fn)(void *ctx, bool8 use_dma) = nullptr;
     int8  (*deinit_fn)(void *ctx) = nullptr;
     
@@ -80,12 +99,10 @@ struct BackendTable {
     int32 (*get_index_fn)(void *ctx) = nullptr;
 
     int32 (*write_blocking_fn)(void *ctx, const uint8 *src, size_t len) = nullptr;
-    int32 (*read_blocking_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
+    int32 (*read_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
 
     int32 (*write_timeout_fn)(void *ctx, const uint8 *src, size_t len, uint32 timeout_us) = nullptr;
     int32 (*read_timeout_fn)(void *ctx, uint8 *dst, size_t len, uint32 timeout_us) = nullptr;
-
-    int32 (*read_dma_start_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
 };
 
 
@@ -94,6 +111,7 @@ public:
     UART() = default;
     UART(
         ConfigContext *cfg,
+        int8  (*init_dma_fn)(void *ctx_raw),
         int8  (*init_fn)(void *ctx, bool8 use_dma),
         int8  (*deinit_fn)(void *ctx),
         int8  (*set_baudrate_fn)(void *ctx, uint32 value),
@@ -101,9 +119,9 @@ public:
         int8  (*set_index_fn)(void *ctx, int8 value),
         int32 (*get_index_fn)(void *ctx),
         int32 (*write_blocking_fn)(void *ctx, const uint8 *src, size_t len),
-        int32 (*read_blocking_fn)(void *ctx, uint8 *dst, size_t len),
-        int32 (*read_dma_start_fn)(void *ctx, uint8 *dst, size_t len)
+        int32 (*read_fn)(void *ctx, uint8 *dst, size_t len)
     ) : ctx(cfg),
+        init_dma_fn(init_dma_fn),
         init_fn(init_fn),
         deinit_fn(deinit_fn),
         set_baudrate_fn(set_baudrate_fn),
@@ -111,8 +129,7 @@ public:
         set_index_fn(set_index_fn),
         get_index_fn(get_index_fn),
         write_blocking_fn(write_blocking_fn),
-        read_blocking_fn(read_blocking_fn),
-        read_dma_start_fn(read_dma_start_fn)
+        read_fn(read_fn)
     {}
 
 
@@ -153,7 +170,7 @@ public:
 
 
     int32 read(uint8 *dst, size_t len) {
-        return read_blocking_fn ? read_blocking_fn(ctx, dst, len) : UART_FUNCTION_NOT_IMPLEMENTED;
+        return read_fn ? read_fn(ctx, dst, len) : UART_FUNCTION_NOT_IMPLEMENTED;
     }
     template <size_t N>
     int32 read(uint8 (&dst)[N]) {
@@ -176,21 +193,12 @@ public:
     }
 
 
-    int32 read_dma(uint8 *dst, size_t len) {
-        return read_dma_start_fn ? read_dma_start_fn(ctx, dst, len) : UART_FUNCTION_NOT_IMPLEMENTED;
-    }
-    template <size_t N>
-    int32 read_dma(uint8 (&dst)[N]) {
-        return read_dma(dst, N);
-    }
-    int32 read_dma(uint8 &byte) {
-        return read_dma(&byte, 1);
-    }
-
 private:
     void *ctx = nullptr;
 
     friend void bind(UART &uart, ConfigContext &cfg, BackendTable &backend);
+
+    int8  (*init_dma_fn)(void *ctx_raw) = nullptr;
 
     int8 (*init_fn)(void *ctx, bool8 use_dma) = nullptr;
     int8 (*deinit_fn)(void *ctx) = nullptr;
@@ -202,12 +210,10 @@ private:
     int32 (*get_index_fn)(void *ctx) = nullptr;
 
     int32 (*write_blocking_fn)(void *ctx, const uint8 *src, size_t len) = nullptr;
-    int32 (*read_blocking_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
+    int32 (*read_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
 
     int32 (*write_timeout_fn)(void *ctx, const uint8 *src, size_t len, uint32 timeout_us) = nullptr;
     int32 (*read_timeout_fn)(void *ctx, uint8 *dst, size_t len, uint32 timeout_us) = nullptr;
-
-    int32 (*read_dma_start_fn)(void *ctx, uint8 *dst, size_t len) = nullptr;
 };
 
 }  

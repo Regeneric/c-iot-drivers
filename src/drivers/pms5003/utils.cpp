@@ -7,7 +7,7 @@
 namespace hkk::pms5003 {
 
 int8 PMS5003::checksum_calculate(uint16 &checksum, uint8 *data, size_t len) {
-    HTRACE("pms5003.cpp -> crc_calculate(uint8&, uint8*, size_t):int8");
+    HTRACE("utils.cpp -> s:PMSS5003::crc_calculate(uint8&, uint8*, size_t):int8");
 
     if(!data) {
         HERROR("[PMS5003] Null data pointer passed to function");
@@ -30,7 +30,7 @@ int8 PMS5003::checksum_calculate(uint16 &checksum, uint8 *data, size_t len) {
 }
 
 int8 PMS5003::checksum_validate(uint8 *data, size_t len) {
-    HTRACE("pms5003.cpp -> crc_validate(uint8*, size_t):int8");
+    HTRACE("utils.cpp -> s:PMS5003::crc_validate(uint8*, size_t):int8");
 
     if(!data) {
         HERROR("[PMS5003] Null data pointer passed to function");
@@ -61,6 +61,26 @@ int8 PMS5003::checksum_validate(uint8 *data, size_t len) {
     }
 
     HTRACE("[PMS5003] Checksum valid");
+    return status;
+}
+
+int8 PMS5003::header_validate(uint8 *data, size_t len) {
+    HTRACE("utils.cpp -> s:PMS5003::header_validate(uint8*, size_t):int8");
+
+    if(!data) {
+        HERROR("[PMS5003] Null data pointer passed to function");
+        return PMS5003_ERROR_NULL_DATA;
+    }
+
+    if(len < DATA_FRAME_LENGTH) {
+        HERROR("[PMS5003] Data frame length invalid");
+        return PMS5003_ERROR_CRC;
+    }
+
+    int8 status = PMS5003_OK;
+
+    // TODO:
+
     return status;
 }
 

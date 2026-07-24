@@ -5,16 +5,18 @@ namespace hkk::dht20 {
 
 inline constexpr size_t DATA_FRAME_LENGTH = (size_t)(7);
 
-inline constexpr float64 SATURATION_VAPOR_PRESSURE = (float64)(611.2);
-inline constexpr float64 MAGNUS_COEFFICIENT        = (float64)(17.62);
-inline constexpr float64 TEMPERATURE_COEFFICIENT   = (float64)(243.5);
-inline constexpr float64 WATER_MOLAR_MASS          = (float64)(0.01802);
-inline constexpr float64 WATER_VAPOR_GAS_CONST     = (float64)(8.314);
-inline constexpr float64 CELSIUS_KELVIN_OFFSET     = (float64)(273.15);
+inline constexpr float32 SATURATION_VAPOR_PRESSURE = (float32)(611.2);
+inline constexpr float32 MAGNUS_COEFFICIENT        = (float32)(17.62);
+inline constexpr float32 TEMPERATURE_COEFFICIENT   = (float32)(243.5);
+inline constexpr float32 WATER_MOLAR_MASS          = (float32)(0.01802);
+inline constexpr float32 WATER_VAPOR_GAS_CONST     = (float32)(8.314);
+inline constexpr float32 CELSIUS_KELVIN_OFFSET     = (float32)(273.15);
 
 enum Command : uint8 {
-    Init    = 0x71,
-    Measure = 0xAC,  
+    Init     = 0x71,
+    Measure0 = 0xAC,  
+    Measure1 = 0x33,
+    Measure2 = 0x00,
 };
 
 enum class CRC : uint8 {
@@ -31,7 +33,7 @@ enum class Status : uint8 {
 enum Register : uint8 {
     Calibration0 = 0x1B,
     Calibration1 = 0x1C,
-    Calibration2 = 0x1D,
+    Calibration2 = 0x1E,
 
     Count = 3
 };
@@ -71,27 +73,30 @@ enum class Vapor : uint8 {
 };
 
 struct Context {
-    float64 temperature;
-    float64 humidity;
-    float64 absolute_humidity;
-    float64 dew_point;
+    float32 temperature;
+    float32 humidity;
+    float32 absolute_humidity;
+    float32 dew_point;
 
-    float64 vapor_pressure;
-    float64 saturation_vapor_pressure;
-    float64 vapor_pressure_deficit;
+    float32 vapor_pressure;
+    float32 saturation_vapor_pressure;
+    float32 vapor_pressure_deficit;
 
-    uint8 *raw_data[DATA_FRAME_LENGTH];
+    uint8 raw_data[DATA_FRAME_LENGTH];
 
     int8 status = DHT20_OK;
 };
 
 struct Config {
-    void        *nvm = nullptr;
+    void    *nvm = nullptr;
 
-    bool8       enable;
-    uint8       address = 0x38;
-    const char  *name = nullptr;
-    const char  *location = nullptr;
+    int32   sensor_timeout_us = -1;   // >0 - Timeout for I2C transactions and sensor status register ; <0 disabled - blocking read and write
+
+    bool8   enable;
+    uint8   address = 0x38;
+
+    const char  *name = "TO_BE_SET";
+    const char  *location = "TO_BE_SET";
 };
 
 }

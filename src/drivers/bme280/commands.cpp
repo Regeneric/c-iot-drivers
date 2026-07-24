@@ -23,19 +23,19 @@ int8 BME280::init(Context &res) {
 
     status = this->get_sensor_id(res);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not get sensor ID");
+        HERROR("[BME280 ] Could not get sensor ID; %s (%s)", this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 
     status = this->soft_reset(res);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Soft reset fail");
+        HERROR("[BME280 ] Soft reset fail; %s (%s)", this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 
     status = this->calibrate(res);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not read sensor calbration data");
+        HERROR("[BME280 ] Could not read sensor calbration data; %s (%s)", this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 
@@ -46,7 +46,7 @@ int8 BME280::init(Context &res) {
 
     status = this->write_register(reg, value);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not write sensor calbration data");
+        HERROR("[BME280 ] Could not write sensor calbration data; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Register: 0x%02X", reg);
         HDEBUG("[BME280 ] Value   : 0x%02X", value);
 
@@ -55,7 +55,7 @@ int8 BME280::init(Context &res) {
 
     status = this->read_register(reg, read);
     if(status < BME280_OK || value != read) {
-        HERROR("[BME280 ] Register value doesn't match");
+        HERROR("[BME280 ] Register value doesn't match; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Expected: 0x%02X", value);
         HDEBUG("[BME280 ] Got     : 0x%02X", read);
 
@@ -71,7 +71,7 @@ int8 BME280::init(Context &res) {
 
     status = this->write_register(reg, value);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not write sensor calbration data");
+        HERROR("[BME280 ] Could not write sensor calbration data; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Register: 0x%02X", reg);
         HDEBUG("[BME280 ] Value   : 0x%02X", value);
 
@@ -80,7 +80,7 @@ int8 BME280::init(Context &res) {
 
     status = this->read_register(reg, read);
     if(status < BME280_OK || value != read) {
-        HERROR("[BME280 ] Register value doesn't match");
+        HERROR("[BME280 ] Register value doesn't match; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Expected: 0x%02X", value);
         HDEBUG("[BME280 ] Got     : 0x%02X", read);
 
@@ -96,7 +96,7 @@ int8 BME280::init(Context &res) {
 
     status = this->write_register(reg, value);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not write sensor calbration data");
+        HERROR("[BME280 ] Could not write sensor calbration data; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Register: 0x%02X", reg);
         HDEBUG("[BME280 ] Value   : 0x%02X", value);
 
@@ -105,30 +105,37 @@ int8 BME280::init(Context &res) {
 
     status = this->read_register(reg, read);
     if(status < BME280_OK || value != read) {
-        HERROR("[BME280 ] Register value doesn't match");
+        HERROR("[BME280 ] Register value doesn't match; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Expected: 0x%02X", value);
         HDEBUG("[BME280 ] Got     : 0x%02X", read);
 
         return res.status = status;
     }
 
-    HDEBUG("[BME280 ] Temperature are presure mode set to: 0x%02X", read);
+    HDEBUG("[BME280 ] Temperature and presure mode set to: 0x%02X", read);
 
     uint8 mode = (this->cfg.temperature_pressure_mode & OPERATON_MODE_MASK);
-    if(mode == Command::NormalMode) {
-        res.operation_mode = Command::NormalMode;
-        HDEBUG("[BME280 ] Sensor operation mode: NORMAL");
-    }
-    else if(mode ==  Command::SleepMode) {
-        res.operation_mode = Command::SleepMode;
-        HDEBUG("[BME280 ] Sensor operation mode: SLEEP");
-    }
-    else {
-        res.operation_mode = Command::ForceMode;
-        HDEBUG("[BME280 ] Sensor operation mode: FORCE");
+    switch(mode) {
+        case Command::NormalMode:
+            res.operation_mode = Command::NormalMode;
+            HDEBUG("[BME280 ] Sensor operation mode: NORMAL");
+        break;
+        case Command::SleepMode:
+            res.operation_mode = Command::SleepMode;
+            HDEBUG("[BME280 ] Sensor operation mode: SLEEP");
+        break;
+        case Command::ForceMode:
+            res.operation_mode = Command::ForceMode;
+            HDEBUG("[BME280 ] Sensor operation mode: FORCE");
+        break;
+        default:
+            res.operation_mode = Command::NormalMode;
+            HWARN("[BME280 ] Unknown operation mode: 0x%02X", Command::NormalMode);
+            HWARN("[BME280 ] Sensor operation mode: NORMAL");
+        break;
     }
 
-    HINFO ("[BME280 ] Sensor initialized");
+    HINFO ("[BME280 ] Sensor initialized; %s (%s)", this->cfg.name, this->cfg.location);
     if(i2c) {
         HDEBUG("[BME280 ] I2C bus: I2C%d", i2c->index());
         HDEBUG("[BME280 ] Address: 0x%02X", this->cfg.address);
@@ -148,13 +155,14 @@ int8 BME280::measure(Context &res) {
 
     int8 status = BME280_OK;
 
+    // TODO: sleep mode operations
     if(res.operation_mode == Command::ForceMode) {
         Register reg = Register::CtrlMeas;
         uint8 value  = this->cfg.temperature_pressure_mode;
 
         status = this->write_register(reg, value);
         if(status < BME280_OK) {
-            HERROR("[BME280 ] Could not init sensor measurement procedure");
+            HERROR("[BME280 ] Could not init sensor measurement procedure; %s (%s)", this->cfg.name, this->cfg.location);
             HDEBUG("[BME280 ] Register: 0x%02X", reg);
             HDEBUG("[BME280 ] Value   : 0x%02X", value);
 
@@ -162,24 +170,45 @@ int8 BME280::measure(Context &res) {
         }
     }
 
-    // TODO: repeating timer with timeout
+
+    this->sensor_timeout = false;
+    this->sensor_timeout_alarm.callback = BME280::sensor_timeout_callback;
+    this->sensor_timeout_alarm.data = this;
+
+    int32 alarm_id = hkk::utils::alarm_us(this->cfg.sensor_timeout_us, &this->sensor_timeout_alarm, true);
+    HTRACE("[BME280 ] Sensor timeout alarm start");
+    HTRACE("[BME280 ] ID     : %d", alarm_id);
+    HTRACE("[BME280 ] Timeout: %d us", this->cfg.sensor_timeout_us);
+
     uint8 sensor_status = Status::Measuring;
     while((sensor_status & Status::Measuring) == Status::Measuring) {
         HTRACE("[BME280 ] Measurement in progress");
+
+        if(this->sensor_timeout == true) {
+            HERROR("[DME280 ] Sensor timeout while data read; %s (%s)", this->cfg.name, this->cfg.location);
+
+            hkk::utils::cancel_alarm(alarm_id);
+            return res.status = BME280_ERROR_TIMEOUT;
+        }
         
         status = this->read_register(Register::Status, sensor_status);
         if(status < BME280_OK) {
-            HERROR("[BME280 ] Could not read status register 0x%02X", Register::Status);
+            HERROR("[BME280 ] Could not read status register 0x%02X; %s (%s)", Register::Status, this->cfg.name, this->cfg.location);
+            
+            hkk::utils::cancel_alarm(alarm_id);
             return res.status = status;
         }
 
         hkk::utils::sleep_ms(1);
     }
 
+    hkk::utils::cancel_alarm(alarm_id);
+
+
     uint8 sensor_raw_data[PRESSURE_DATA_FRAME_LENGTH + TEMPERATURE_DATA_FRAME_LENGTH + HUMIDITY_DATA_FRAME_LENGTH];
     status = read_register(Register::PressMsb, sensor_raw_data);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not read sensor measurement data");
+        HERROR("[BME280 ] Could not read sensor measurement data; %s (%s)", this->cfg.name, this->cfg.location);
         HDEBUG("[BME280 ] Register: 0x%02X", Register::PressMsb);
 
         return res.status = status;
@@ -206,7 +235,7 @@ int8 BME280::calibrate(Context &res) {
 
     status = this->read_register(Register::Calib00, data, CALIB00_DATA_FRAME);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not read calibration register 0x%02X", Register::Calib00);
+        HERROR("[BME280 ] Could not read calibration register 0x%02X; %s (%s)", Register::Calib00, this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 
@@ -228,7 +257,7 @@ int8 BME280::calibrate(Context &res) {
 
     status = this->read_register(Register::Calib26, data, CALIB26_DATA_FRAME);
     if(status < BME280_OK) {
-        HERROR("[BME280 ] Could not read calibration register 0x%02X", Register::Calib26);
+        HERROR("[BME280 ] Could not read calibration register 0x%02X; %s (%s)", Register::Calib26, this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 
@@ -261,7 +290,7 @@ int8 BME280::get_sensor_id(Context &res) {
     }
 
     if(ready_status != Status::Ready) {
-        HERROR("[BME280 ] ID register value doesn't match"); 
+        HERROR("[BME280 ] ID register value doesn't match; %s (%s)", this->cfg.name, this->cfg.location); 
         HDEBUG("[BME280 ] Expected: 0x%02X", Status::Ready);
         HDEBUG("[BME280 ] Got     : 0x%02X", ready_status);
 
@@ -305,5 +334,15 @@ int8 BME280::soft_reset(Context &res) {
     HDEBUG("[BME280 ] Soft reset complete");
     return res.status = status;
 }
+
+
+bool8 BME280::sensor_timeout_callback(void *data) {
+    if(!data) return false;
+
+    auto *self = static_cast<BME280*>(data);
+    self->sensor_timeout = true;
+
+    return false;
+} 
 
 }

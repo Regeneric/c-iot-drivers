@@ -5,6 +5,8 @@
 
 #include <hkk/drivers/pms5003/pms5003.hpp>
 
+#include <hardware/gpio.h>
+
 #include <cstring>
 
 namespace hkk::pms5003 {
@@ -26,9 +28,6 @@ int8 PMS5003::measure(Context &res) {
             HERROR("[PMS5003] Could not send measure command");
             return res.status = status;
         }
-
-        // TODO: header validation instead of sleep
-        hkk::utils::sleep_ms(1);
     }
 
     status = this->read_raw_data(res.raw_data, DATA_FRAME_LENGTH);
@@ -81,7 +80,7 @@ int8 PMS5003::mode(Context &res) {
         HDEBUG("[PMS5003] Value: 0x%02X", res.operation_mode);
     } 
 
-    HDEBUG("[PMS5003] Mode set to 0x%02X", res.operation_mode);
+    HDEBUG("[PMS5003] Operation mode set to 0x%02X", res.operation_mode);
     return res.status = status;
 }
     
@@ -107,6 +106,31 @@ int8 PMS5003::sleep(Context &res) {
 
     HDEBUG("[PMS5003] Power mode set to 0x%02X", res.sleep_mode);
     return res.status = status;
+}
+
+int8 PMS5003::hard_reset(void) {
+    HTRACE("commands.cpp -> PMS5003:hard_reset(-):int8");
+    return this->hard_reset(this->ctx);
+}
+
+int8 PMS5003::hard_reset(Context &res) {
+    HTRACE("commands.cpp -> PMS5003:hard_reset(-):int8");
+    if(int8 status = this->sensor_enabled(); status < PMS5003_OK) return res.status = status;
+
+    if(this->cfg.gpio_reset < 0) {
+        HWARN("[PMS5003] No reset GPIO pin defined");
+        return res.status = PMS5003_ERROR_GENERIC;
+    }
+
+    constexpr uint8 GPIO_LOW  = 0;
+    constexpr uint8 GPIO_HIGH = 1;
+
+    ::gpio_put(this->cfg.gpio_reset, GPIO_LOW);
+    hkk::utils::sleep_ms(100);
+    ::gpio_put(this->cfg.gpio_reset, GPIO_HIGH);
+
+    HINFO("[PMS5003] Hard reset success");
+    return PMS5003_OK;
 }
 
 }

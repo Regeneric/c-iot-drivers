@@ -377,14 +377,14 @@ int8 SGP30::set_tvoc_baseline(Context &res) {
 
     // TODO: data_frame() function to encapsulate this code block
     uint8 crc = 0;
-    status = crc_calculate(crc, res.baseline, (HALF_DATA_FRAME_LENGTH - 1));
+    status = crc_calculate(crc, res.tvoc_baseline, (HALF_DATA_FRAME_LENGTH - 1));
     if(status < SGP30_OK) return res.status = status;
 
     uint8 data[COMMAND_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH];    
     uint8 command[COMMAND_FRAME_LENGTH] = {hkk::utils::msb(Command::SetTvocBaseline), hkk::utils::lsb(Command::SetTvocBaseline)};
 
     std::memcpy(data, command, COMMAND_FRAME_LENGTH);
-    std::memcpy((data + COMMAND_FRAME_LENGTH), res.baseline, (HALF_DATA_FRAME_LENGTH - 1));
+    std::memcpy((data + COMMAND_FRAME_LENGTH), res.tvoc_baseline, (HALF_DATA_FRAME_LENGTH - 1));
     data[COMMAND_FRAME_LENGTH + (HALF_DATA_FRAME_LENGTH - 1)] = crc;
 
     status = this->send_payload(data);
@@ -399,15 +399,26 @@ int8 SGP30::set_tvoc_baseline(Context &res) {
 
     return res.status = status;
 }
-
+ 
 int8 SGP30::soft_reset(void) {
     HTRACE("commands.cpp -> SGP30::soft_reset(-):int8");
     if(int8 status = this->sensor_enabled(); status < SGP30_OK) return status;
 
     int8 status = SGP30_OK;
 
-    status = this->send_command(Command::SoftReset);
-    if(status < SGP30_OK) return status;
+    {
+        auto tx = i2c.transaction(this);
+        if(tx.status < hkk::bus::i2c::I2C_OK) {
+            return this->validate_i2c_error(tx.status);
+        }
+
+        const uint8 commands[] = {hkk::utils::msb(Command::SoftReset), hkk::utils::lsb(Command::SoftReset)};
+        status = i2c.write(SOFT_RESET_ADDRESS, commands);
+    }
+
+    if(status < hkk::bus::i2c::I2C_OK) {
+        return this->validate_i2c_error(static_cast<int8>(status));
+    }
 
     // Table 10 Measurement commands
     hkk::utils::sleep_ms(10);

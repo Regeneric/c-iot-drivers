@@ -43,34 +43,45 @@ public:
     int8 validate_nvm_error(int8 status);
 
 
-    float64 humidity(bool8 absolute_humidity = false);
+    float32 humidity(bool8 absolute_humidity = false);
     void humidity(Context &res);
 
-    float64 temperature(void);
+    float32 temperature(void);
     void temperature(Context &res);
 
-    float64 dew_point(void);
+    float32 dew_point(void);
     void dew_point(Context &res);
 
-    float64 vapor(Vapor type);
+    float32 vapor(Vapor type);
     void vapor(Context &res);
 
 private:
     hkk::bus::i2c::I2C &i2c;
-    const Config cfg;
-
+    
+    Config cfg;
     Context ctx{};
 
 
     int8 read_raw_data(uint8 *data, size_t len);
 
-    float64 calculate_absolute_humidity(void);
-    float64 calculate_absolute_humidity(float64 humidity, float64 temperature);
-    float64 calculate_absolute_humidity(Context &res);
+    float32 calculate_absolute_humidity(void);
+    float32 calculate_absolute_humidity(float32 humidity, float32 temperature);
+    float32 calculate_absolute_humidity(Context &res);
     
-    float64 calculate_dew_point(void);
-    float64 calculate_dew_point(float64 humidity, float64 temperature);
-    float64 calculate_dew_point(Context &res);
+    float32 calculate_dew_point(void);
+    float32 calculate_dew_point(float32 humidity, float32 temperature);
+    float32 calculate_dew_point(Context &res);
+
+    static int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len);
+    template<size_t N> static int8 crc_calculate(uint8 &checksum, uint8 (&data)[N]) {return crc_calculate(checksum, data, N);}
+    template<size_t N> static int8 crc_calculate(uint8 (&data)[N]) {return crc_calculate(nullptr, data, N);}
+
+    static int8 crc_validate(uint8 *data, size_t len);
+    template<size_t N> static int8 crc_validate(uint8 (&data)[N]) {return crc_validate(data, N);}
+
+    hkk::utils::AlarmContext sensor_timeout_alarm{};
+    bool8 sensor_timeout = false;
+    static bool8 sensor_timeout_callback(void *data);
 
     int8 sensor_enabled(void) {
         if(!this->cfg.enable) {

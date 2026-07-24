@@ -3,4 +3,4 @@
 add_subdirectory(bus)
 add_subdirectory(utils)
 add_subdirectory(storage)
-add_subdirectory(core)
+# add_subdirectory(core)

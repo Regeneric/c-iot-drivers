@@ -25,7 +25,10 @@ int8 DHT20::setup(Context &res) {
     // 7.4.1 Sensor Reading Process
     hkk::utils::sleep_ms(100);
     status = this->init(res);
-    if(status < DHT20_OK) return res.status = status;
+    if(status < DHT20_OK) {
+        this->cfg.enable = false;
+        return res.status = status;
+    }
 
     // 7.4.2 Sensor Reading Process
     hkk::utils::sleep_ms(10);
@@ -88,7 +91,7 @@ int8 DHT20::soft_reset(Context &res) {
             if(status < DHT20_OK) return res.status = status;
         }
 
-        HDEBUG("[DHT20  ] Sensor recovery sequence");
+        HDEBUG("[DHT20  ] Sensor recovery sequence; %s (%s)", this->cfg.name, this->cfg.location);
         return res.status = status;
     }
 }
@@ -110,8 +113,11 @@ int8 DHT20::send_command(uint8 address, Command command) {
             return this->validate_i2c_error(tx.status);
         }
 
-        status = i2c.write(address, command); 
+        if(this->cfg.sensor_timeout_us <= 0) status = i2c.write(address, command);
+        else status = i2c.write_timeout(address, command, this->cfg.sensor_timeout_us);
+
         if(status < hkk::bus::i2c::I2C_OK) {
+            HERROR("[DHT20  ] I2C bus error: %d", status);
             return this->validate_i2c_error(status);
         }
 
@@ -149,7 +155,9 @@ int8 DHT20::send_payload(uint8 addr, uint8 *payload, size_t len) {
             return this->validate_i2c_error(tx.status);
         }
 
-        status = i2c.write(addr, payload, len);
+        if(this->cfg.sensor_timeout_us <= 0) status = i2c.write(addr, payload, len);
+        else status = i2c.write_timeout(addr, payload, len, this->cfg.sensor_timeout_us);
+
         if(status < hkk::bus::i2c::I2C_OK) {
             return this->validate_i2c_error(static_cast<int8>(status));
         }
@@ -167,12 +175,12 @@ int8 DHT20::read_raw_data(uint8 *data, size_t len) {
     int32 status;
 
     if(!data) {
-        HERROR("[DHT20  ] Null data pointer passed to function");
+        HERROR("[DHT20  ] Null data pointer passed to function; %s (%s)", this->cfg.name, this->cfg.location);
         return DHT20_ERROR_NULL_DATA;
     }
 
     if(len == 0) {
-        HERROR("[DHT20  ] Data length is 0");
+        HERROR("[DHT20  ] Data length is 0; %s (%s)", this->cfg.name, this->cfg.location);
         return DHT20_ERROR_ZERO_LENGTH;
     }
 
@@ -182,7 +190,9 @@ int8 DHT20::read_raw_data(uint8 *data, size_t len) {
             return this->validate_i2c_error(tx.status);
         }
 
-        status = i2c.read(this->cfg.address, data, len);
+        if(this->cfg.sensor_timeout_us <= 0) status = i2c.read(this->cfg.address, data, len);
+        else status = i2c.read_timeout(this->cfg.address, data, len, this->cfg.sensor_timeout_us);
+        
         if(status < hkk::bus::i2c::I2C_OK) {
             return this->validate_i2c_error(status);
         }
@@ -197,7 +207,7 @@ int8 DHT20::validate_nvm_error(int8 error) {
     if(int8 status = this->sensor_enabled(); status < DHT20_OK) return status;
 
     if(error < hkk::storage::nvm::NVM_OK) {
-        HERROR("[DHT20  ] Could not write data to NVM storage");
+        HERROR("[DHT20  ] Could not write data to NVM storage; %s (%s)", this->cfg.name, this->cfg.location);
         switch(error) {
             case hkk::storage::nvm::NVM_OK:
                 break;
@@ -229,7 +239,7 @@ int8 DHT20::validate_i2c_error(int8 error) {
     if(int8 status = this->sensor_enabled(); status < DHT20_OK) return status;
 
     if(error < hkk::bus::i2c::I2C_OK) {
-        HERROR("[DHT20  ] Could not send data to I2C bus");
+        HERROR("[DHT20  ] Could not send data to I2C bus; %s (%s)", this->cfg.name, this->cfg.location);
         switch(error) {
             case hkk::bus::i2c::I2C_OK:
                 break;
@@ -252,22 +262,24 @@ int8 DHT20::validate_i2c_error(int8 error) {
             case hkk::bus::i2c::I2C_ERROR_NULL_MUTEX:
             case hkk::bus::i2c::I2C_ERROR_NOT_SUPPORTED:
             case hkk::bus::i2c::I2C_ERROR_GENERIC:
-            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
             case hkk::bus::i2c::I2C_ERROR_UNKNOWN:
                 return DHT20_ERROR_I2C;
+
+            case hkk::bus::i2c::I2C_FUNCTION_NOT_IMPLEMENTED:
+                return DHT20_FUNCTION_NOT_IMPLEMENTED;
         }
     }
     
     return DHT20_OK;
 }
 
-float64 DHT20::calculate_absolute_humidity(void) {
-    HTRACE("dht20.cpp -> DHT20::absolute_humidty(-):float64");
+float32 DHT20::calculate_absolute_humidity(void) {
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(-):float32");
     return this->calculate_absolute_humidity(this->ctx);
 }
 
-float64 DHT20::calculate_absolute_humidity(float64 humidity, float64 temperature) {
-    HTRACE("dht20.cpp -> DHT20::absolute_humidty(float64, float64):float64");
+float32 DHT20::calculate_absolute_humidity(float32 humidity, float32 temperature) {
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(float32, float32):float32");
 
     this->ctx.temperature = temperature;
     this->ctx.humidity = humidity;
@@ -275,15 +287,15 @@ float64 DHT20::calculate_absolute_humidity(float64 humidity, float64 temperature
     return this->calculate_absolute_humidity(this->ctx);
 }
 
-float64 DHT20::calculate_absolute_humidity(Context &res) {
-    HTRACE("dht20.cpp -> DHT20::absolute_humidty(Context&):float64");
+float32 DHT20::calculate_absolute_humidity(Context &res) {
+    HTRACE("dht20.cpp -> DHT20::absolute_humidty(Context&):float32");
     
     // Magnus-Tetens approximation
-    float64 saturation = (SATURATION_VAPOR_PRESSURE * std::exp((MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature)));
-    float64 pressure = saturation * (res.humidity / 100.0);    
-    float64 vapor_deficit = (saturation - pressure) / 1000.0;   // kPa
+    float32 saturation = (SATURATION_VAPOR_PRESSURE * std::exp((MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature)));
+    float32 pressure = saturation * (res.humidity / 100.0);    
+    float32 vapor_deficit = (saturation - pressure) / 1000.0;   // kPa
     
-    float64 absolute_humidity = ((pressure * WATER_MOLAR_MASS) / (WATER_VAPOR_GAS_CONST * (res.temperature + CELSIUS_KELVIN_OFFSET)));  // kg/m3
+    float32 absolute_humidity = ((pressure * WATER_MOLAR_MASS) / (WATER_VAPOR_GAS_CONST * (res.temperature + CELSIUS_KELVIN_OFFSET)));  // kg/m3
     absolute_humidity = (absolute_humidity * 1000.0); // g/m3
 
     HTRACE("[DHT20  ] Actual vapor pressure    : %3.3f Pa", pressure);
@@ -299,13 +311,13 @@ float64 DHT20::calculate_absolute_humidity(Context &res) {
     return absolute_humidity;
 }
 
-float64 DHT20::calculate_dew_point(void) {
-    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(-):float64");
+float32 DHT20::calculate_dew_point(void) {
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(-):float32");
     return this->calculate_dew_point(this->ctx);
 }
 
-float64 DHT20::calculate_dew_point(float64 humidity, float64 temperature) {
-    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(float64, float64):float64");
+float32 DHT20::calculate_dew_point(float32 humidity, float32 temperature) {
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(float32, float32):float32");
 
     this->ctx.temperature = temperature;
     this->ctx.humidity = humidity;
@@ -313,11 +325,11 @@ float64 DHT20::calculate_dew_point(float64 humidity, float64 temperature) {
     return this->calculate_dew_point(this->ctx);
 }
 
-float64 DHT20::calculate_dew_point(Context &res) {
-    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(Context&):float64");
+float32 DHT20::calculate_dew_point(Context &res) {
+    HTRACE("dht20.cpp -> DHT20::calculate_dew_point(Context&):float32");
 
-    float64 gamma = (std::log(res.humidity / 100) + (MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature));
-    float64 dew_point = ((TEMPERATURE_COEFFICIENT * gamma) / (MAGNUS_COEFFICIENT - gamma));
+    float32 gamma = (std::log(res.humidity / 100) + (MAGNUS_COEFFICIENT * res.temperature) / (TEMPERATURE_COEFFICIENT + res.temperature));
+    float32 dew_point = ((TEMPERATURE_COEFFICIENT * gamma) / (MAGNUS_COEFFICIENT - gamma));
 
     HTRACE("[DHT20  ] Gamma    : %3.3f", gamma);
     HTRACE("[DHT20  ] Dew point: %3.3f *C", dew_point);
@@ -326,8 +338,8 @@ float64 DHT20::calculate_dew_point(Context &res) {
 }
 
 
-float64 DHT20::humidity(bool8 absolute_humidity) {
-    HTRACE("dht20.cpp -> DHT20::humidity(bool8 = false):float64");
+float32 DHT20::humidity(bool8 absolute_humidity) {
+    HTRACE("dht20.cpp -> DHT20::humidity(bool8 = false):float32");
     return (absolute_humidity == true) ? this->ctx.absolute_humidity : this->ctx.humidity;
 } 
 
@@ -338,8 +350,8 @@ void DHT20::humidity(Context &res) {
     res.absolute_humidity = this->ctx.absolute_humidity;
 }
     
-float64 DHT20::temperature(void) {
-    HTRACE("dht20.cpp -> DHT20::temperature(-):float64");
+float32 DHT20::temperature(void) {
+    HTRACE("dht20.cpp -> DHT20::temperature(-):float32");
     return this->ctx.temperature;
 } 
 
@@ -348,8 +360,8 @@ void DHT20::temperature(Context &res) {
     res.temperature = this->ctx.temperature;
 }
 
-float64 DHT20::dew_point(void) {
-    HTRACE("dht20.cpp -> DHT20::dew_point(-):float64");
+float32 DHT20::dew_point(void) {
+    HTRACE("dht20.cpp -> DHT20::dew_point(-):float32");
     return this->ctx.dew_point;
 } 
 
@@ -358,14 +370,14 @@ void DHT20::dew_point(Context &res) {
     res.dew_point = this->ctx.dew_point;
 }
 
-float64 DHT20::vapor(Vapor type) {
-    HTRACE("dht20.cpp -> DHT20::vapor(Vapor):float64");
+float32 DHT20::vapor(Vapor type) {
+    HTRACE("dht20.cpp -> DHT20::vapor(Vapor):float32");
     
     switch(type) {
         case Vapor::Deficit:    return this->ctx.vapor_pressure_deficit;
         case Vapor::Pressure:   return this->ctx.vapor_pressure;
         case Vapor::Saturation: return this->ctx.saturation_vapor_pressure;
-        default: return static_cast<float64>(DHT20_ERROR_GENERIC);   
+        default: return static_cast<float32>(DHT20_ERROR_GENERIC);   
     }
 } 
 

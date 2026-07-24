@@ -25,10 +25,16 @@ int8 SGP30::setup(Context &res) {
     int8 status = SGP30_OK;
 
     status = this->iaq_init(res);
-    if(status < SGP30_OK) return res.status = status;
+    if(status < SGP30_OK) {
+        this->cfg.enable = false;
+        return res.status = status;
+    }
 
     status = this->get_serial_number(res);
-    if(status < SGP30_OK) return res.status = status;
+    if(status < SGP30_OK) {
+        this->cfg.enable = false;
+        return res.status = status;
+    }
 
     int8 crc_eco2 = crc_validate((res.baseline + 0), HALF_DATA_FRAME_LENGTH);
     int8 crc_tvoc = crc_validate((res.baseline + 3), HALF_DATA_FRAME_LENGTH);

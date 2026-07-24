@@ -41,6 +41,14 @@ bool repeating_timer_ms(int64 ms, TimerContext *ctx) {
     return ::add_repeating_timer_ms(ms, repeating_timer_adapter, ctx, static_cast<::repeating_timer_t*>(ctx->timer));
 }
 
+bool cancel_repeating_timer(TimerContext *ctx) {
+    HTRACE("utils.cpp -> cancel_timer(TimerContext*):bool");
+
+    if(!ctx) return false;
+    if(!ctx->timer) return false;
+    return ::cancel_repeating_timer(static_cast<::repeating_timer_t*>(ctx->timer));
+} 
+
 
 static int64 alarm_adapter(::alarm_id_t id, void *user_data) {
     HTRACE("utils.cpp -> s:alarm_adapter(::alarm_id_t, void*):int64");
@@ -56,13 +64,18 @@ static int64 alarm_adapter(::alarm_id_t id, void *user_data) {
 }
 
 int32 alarm_us(uint32 us, AlarmContext *ctx, bool8 fire_if_past) {
-    HTRACE("utils.cpp -> alarm_us(uint32, AlarmContext*, void*, bool8 = true):int8");
-    return static_cast<int32>(::add_alarm_in_ms(us, alarm_adapter, ctx, fire_if_past));
+    HTRACE("utils.cpp -> alarm_us(uint32, AlarmContext*, void*, bool8 = true):int32");
+    return ::add_alarm_in_us(us, alarm_adapter, ctx, fire_if_past);
 }
 
 int32 alarm_ms(uint32 ms, AlarmContext *ctx, bool8 fire_if_past) {
-    HTRACE("utils.cpp -> alarm_ms(uint32, AlarmContext*, void*, bool8 = true):int8");
-    return static_cast<int32>(::add_alarm_in_ms(ms, alarm_adapter, ctx, fire_if_past));
+    HTRACE("utils.cpp -> alarm_ms(uint32, AlarmContext*, void*, bool8 = true):int32");
+    return ::add_alarm_in_ms(ms, alarm_adapter, ctx, fire_if_past);
+}
+
+bool cancel_alarm(int32 alarm_id) {
+    HTRACE("utils.cpp -> cancel_alarm(int32):bool");
+    return ::cancel_alarm(alarm_id);
 }
 
 }

@@ -1,6 +1,7 @@
 add_library(hkk_bus_uart_rp2350 
     STATIC EXCLUDE_FROM_ALL
         uart.cpp
+        dma.cpp
 )
 
 add_library(hkk::rp2350::bus::uart ALIAS hkk_bus_uart_rp2350)

@@ -13,3 +13,8 @@ target_include_directories(hkk_drivers_pms5003
     PUBLIC
         ${HKK_IOT_DRIVERS_ROOT}/include
 )
+
+target_link_libraries(hkk_drivers_pms5003 
+    PUBLIC
+        hardware_gpio
+)

@@ -133,6 +133,8 @@ public:
         int32 (*get_index_fn)(void *ctx),
         int32 (*write_blocking_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, bool8 nostop),
         int32 (*read_blocking_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, bool8 nostop),
+        int32 (*write_timeout_fn)(void *ctx, uint8 addr, const uint8 *src, size_t len, uint32 timeout_us, bool8 nostop),
+        int32 (*read_timeout_fn)(void *ctx, uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop),
         int8  (*transaction_fn)(void *ctx, void *owner),
         int8  (*commit_fn)(void *ctx, void *owner)
     ) : ctx(cfg),
@@ -144,6 +146,8 @@ public:
         get_index_fn(get_index_fn),
         write_blocking_fn(write_blocking_fn),
         read_blocking_fn(read_blocking_fn),
+        write_timeout_fn(write_timeout_fn),
+        read_timeout_fn(read_timeout_fn),
         transaction_fn(transaction_fn),
         commit_fn(commit_fn)
     {}
@@ -209,6 +213,18 @@ public:
     }
 
 
+    int32 read_timeout(uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout_fn ? read_timeout_fn(ctx, addr, dst, len, timeout_us, nostop) : I2C_FUNCTION_NOT_IMPLEMENTED;
+    }
+    template <size_t N>
+    int32 read_timeout(uint8 addr, uint8 (&dst)[N], uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(addr, dst, N, timeout_us, nostop);
+    }
+    int32 read_timeout(uint8 addr, uint8 &byte, uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(addr, &byte, 1, timeout_us, nostop);
+    }
+
+
     TransactionGuard transaction(void *owner = nullptr) {
         if(transaction_fn) {
             int8 status = transaction_fn(ctx, owner);
@@ -245,3 +261,26 @@ private:
 };
 
 }  
+
+
+namespace hkk::bus::twi {
+
+using TWI          = i2c::I2C;
+using Config       = i2c::ConfigContext;
+using LockState    = i2c::LockState;
+using BackendTable = i2c::BackendTable;
+using Result       = i2c::Result;
+
+using i2c::bind;
+using i2c::rts;
+
+inline TWI &TWI0 = i2c::I2C0;
+inline TWI &TWI1 = i2c::I2C1;
+inline TWI &TWI2 = i2c::I2C2;
+inline TWI &TWI3 = i2c::I2C3;
+inline TWI &TWI4 = i2c::I2C4;
+inline TWI &TWI5 = i2c::I2C5;
+inline TWI &TWI6 = i2c::I2C6;
+inline TWI &TWI7 = i2c::I2C7;
+
+}

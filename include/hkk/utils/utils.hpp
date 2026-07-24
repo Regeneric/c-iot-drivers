@@ -26,6 +26,7 @@ struct TimerContext {
 
 bool repeating_timer_us(int64 us, TimerContext *ctx);
 bool repeating_timer_ms(int64 ms, TimerContext *ctx);
+bool cancel_repeating_timer(TimerContext *ctx);
 
 
 using AlarmCallback = bool8 (*)(void *);
@@ -36,5 +37,6 @@ struct AlarmContext {
 
 int32 alarm_us(uint32 us, AlarmContext *ctx, bool8 fire_if_past = true);
 int32 alarm_ms(uint32 ms, AlarmContext *ctx, bool8 fire_if_past = true);
+bool cancel_alarm(int32 alarm_id);
 
 };

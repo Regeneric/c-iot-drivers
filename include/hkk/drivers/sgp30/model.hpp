@@ -8,6 +8,8 @@ inline constexpr size_t HALF_DATA_FRAME_LENGTH  = (DATA_FRAME_LENGTH / (size_t)(
 inline constexpr size_t JUMBO_DATA_FRAME_LENGTH = (DATA_FRAME_LENGTH + HALF_DATA_FRAME_LENGTH); 
 inline constexpr size_t COMMAND_FRAME_LENGTH    = (size_t)(2);
 
+inline constexpr uint8  SOFT_RESET_ADDRESS      = 0x00;
+
 enum Command : uint16 {
     SoftReset                = 0x0006,
     IaqInit                  = 0x2003,

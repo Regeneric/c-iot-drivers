@@ -7,8 +7,8 @@
 
 namespace hkk::dht20 {
 
-int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
-    HTRACE("dht20.cpp -> crc_calculate(uint8&, uint8*, size_t):int8");
+int8 DHT20::crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
+    HTRACE("dht20.cpp -> s:DHT20::crc_calculate(uint8&, uint8*, size_t):int8");
 
     if(len == 0 || len > (DATA_FRAME_LENGTH - 1)) {
         HERROR("[DHT20  ] Data frame length invalid");
@@ -39,8 +39,8 @@ int8 crc_calculate(uint8 &checksum, uint8 *data, size_t len) {
     return DHT20_OK;
 }
 
-int8 crc_validate(uint8 *data, size_t len) {
-    HTRACE("dht20.cpp -> crc_validate(uint8*, size_t):int8");
+int8 DHT20::crc_validate(uint8 *data, size_t len) {
+    HTRACE("dht20.cpp -> s:DHT20::crc_validate(uint8*, size_t):int8");
 
     int8 status = DHT20_OK;
 
@@ -55,7 +55,7 @@ int8 crc_validate(uint8 *data, size_t len) {
     uint8 crc = 0;
     uint8 dht_crc = data[(DATA_FRAME_LENGTH - 1)];    // Last element of array
 
-    status = crc_calculate(crc, data, (len - 1));
+    status = DHT20::crc_calculate(crc, data, (len - 1));
     if(status < DHT20_OK) return status;
 
     if(crc != dht_crc) {

@@ -26,6 +26,9 @@ public:
     int8 sleep(Power mode);
     int8 sleep(Context &res);
 
+    int8 hard_reset(void);
+    int8 hard_reset(Context &res);
+
     int8 send_command(Command command, uint8 value);
 
 
@@ -40,8 +43,8 @@ public:
 
 private:
     hkk::bus::uart::UART &uart;
-    const Config cfg;
-
+    
+    Config cfg;
     Context ctx{};
 
     int8 read_raw_data(uint8 *data, size_t len);
@@ -51,6 +54,8 @@ private:
 
     static int8 checksum_calculate(uint16 &checksum, uint8 *data, size_t len);
     static int8 checksum_validate(uint8 *data, size_t len);
+
+    static int8 header_validate(uint8 *data, size_t len);
 
     int8 sensor_enabled(void) {
         if(!this->cfg.enable) {

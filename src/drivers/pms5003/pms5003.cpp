@@ -26,12 +26,16 @@ int8 PMS5003::setup(Context &res) {
     status = this->sleep(res.sleep_mode);
     if(status < PMS5003_OK) {
         HERROR("[PMS5003] Sensor sleep mode change fail");
+        
+        this->cfg.enable = false;
         return res.status = status;
     }
 
     status = this->mode(res.operation_mode);
     if(status < PMS5003_OK) {
         HERROR("[PMS5003] Sensor operation mode change fail");
+
+        this->cfg.enable = false;
         return res.status = status;
     }
 

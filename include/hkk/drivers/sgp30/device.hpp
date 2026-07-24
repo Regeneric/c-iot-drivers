@@ -103,8 +103,8 @@ public:
 
 private:
     hkk::bus::i2c::I2C &i2c;
-    const Config cfg;
-
+    
+    Config cfg;
     Context ctx{};
 
     

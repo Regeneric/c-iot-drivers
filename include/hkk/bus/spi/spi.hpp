@@ -132,6 +132,8 @@ public:
         int32 (*get_index_fn)(void *ctx),
         int32 (*write_blocking_fn)(void *ctx, const uint8 *src, size_t len),
         int32 (*read_blocking_fn)(void *ctx, uint8 *dst, size_t len),
+        int32 (*write_timeout_fn)(void *ctx, const uint8 *src, size_t len, uint32 timeout_us),
+        int32 (*read_timeout_fn)(void *ctx, uint8 *dst, size_t len, uint32 timeout_us),
         int8  (*transaction_fn)(void *ctx, void *owner),
         int8  (*commit_fn)(void *ctx, void *owner)
     ) : ctx(cfg),
@@ -143,6 +145,8 @@ public:
         get_index_fn(get_index_fn),
         write_blocking_fn(write_blocking_fn),
         read_blocking_fn(read_blocking_fn),
+        write_timeout_fn(write_timeout_fn),
+        read_timeout_fn(read_timeout_fn),
         transaction_fn(transaction_fn),
         commit_fn(commit_fn)
     {}
@@ -238,6 +242,29 @@ public:
     template<size_t N>
     int32 write_timeout(const uint8 (&src)[N], uint32 timeout_us, bool8 nostop = false) {
         return write_timeout(src, N, timeout_us, nostop);
+    }
+
+
+    int32 read_timeout(uint8 addr, uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop = false) {
+        HTRACE("[SPI    ] SPI does not use bus addressing; ignoring address 0x%02X", addr);
+        return read_timeout_fn ? read_timeout_fn(ctx, dst, len, timeout_us) : SPI_FUNCTION_NOT_IMPLEMENTED;
+    }
+    int32 read_timeout(uint8 *dst, size_t len, uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(dst, len, timeout_us, nostop);
+    }
+    int32 read_timeout(uint8 addr, uint8 &byte, uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(addr, &byte, 1, timeout_us, nostop);
+    }
+    int32 read_timeout(uint8 &byte, uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(&byte, 1, timeout_us, nostop);
+    }
+    template<size_t N>
+    int32 read_timeout(uint8 addr, uint8 (&dst)[N], uint32 timeout_us, bool8 nostop = false){
+        return read_timeout(addr, dst, N, timeout_us, nostop);
+    }
+    template<size_t N>
+    int32 read_timeout(uint8 (&dst)[N], uint32 timeout_us, bool8 nostop = false) {
+        return read_timeout(dst, N, timeout_us, nostop);
     }
 
 

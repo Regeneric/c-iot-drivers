@@ -453,11 +453,11 @@ static int32 write_timeout_fn(void *ctx_raw, uint8 addr, const uint8 *src, size_
 
     HTRACE("[I2C    ] First byte   : 0x%02X", src[0]);
     HTRACE("[I2C    ] Data length  : %zu", len);
-    HDEBUG("[I2C    ] Bytes written: %d", written);
+    HTRACE("[I2C    ] Bytes written: %d", written);
     HTRACE("[I2C    ] Timeout      : %dus", timeout_us);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Write complete");
+    HTRACE("[I2C    ] Write complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return written;
@@ -543,10 +543,11 @@ static int32 read_timeout_fn(void *ctx_raw, uint8 addr, uint8 *dst, size_t len, 
 
     HTRACE("[I2C    ] First byte   : 0x%02X", dst[0]);
     HTRACE("[I2C    ] Data length  : %zu", len);
-    HDEBUG("[I2C    ] Bytes read   : %d", read);
+    HTRACE("[I2C    ] Bytes read   : %d", read);
+    HTRACE("[I2C    ] Timeout      : %dus", timeout_us);
     HTRACE("[I2C    ] No STOP      : %s", nostop ? "true" : "false");
 
-    HDEBUG("[I2C    ] Read complete");
+    HTRACE("[I2C    ] Read complete");
 
     ctx->status = hkk::bus::i2c::I2C_OK;
     return read;
@@ -785,6 +786,8 @@ I2C I2C0 {
     hkk::rp2350::i2c::get_index_fn,
     hkk::rp2350::i2c::write_blocking_fn,
     hkk::rp2350::i2c::read_blocking_fn,
+    hkk::rp2350::i2c::write_timeout_fn,
+    hkk::rp2350::i2c::read_timeout_fn,
     hkk::bus::i2c::transaction_fn,
     hkk::bus::i2c::commit_fn
 };
@@ -799,6 +802,8 @@ I2C I2C1 {
     hkk::rp2350::i2c::get_index_fn,
     hkk::rp2350::i2c::write_blocking_fn,
     hkk::rp2350::i2c::read_blocking_fn,
+    hkk::rp2350::i2c::write_timeout_fn,
+    hkk::rp2350::i2c::read_timeout_fn,
     hkk::bus::i2c::transaction_fn,
     hkk::bus::i2c::commit_fn
 };

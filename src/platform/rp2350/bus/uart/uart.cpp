@@ -12,95 +12,9 @@
 
 namespace hkk::rp2350::uart {
 
-struct DMAContext {
-    int32 rx_channel = -1;
-    int32 tx_channel = -1;
-    bool8 rx_active  = false;
-    bool8 tx_active  = false;
-};
+extern int8  init_dma_fn(void *ctx_raw);
+extern int32 read_dma_fn(void *ctx_raw, uint8 *dst, size_t len);
 
-// TODO: working DMA
-
-static int8 init_dma_fn(void *ctx_raw) {
-    HTRACE("uart.cpp -> s:init_dma_fn(void*):int8");
-
-    if(!ctx_raw) {
-        HERROR("[UART   ] Null context passed to function");
-        return hkk::bus::uart::UART_ERROR_NULL_CONTEXT;
-    }
-    auto *ctx = static_cast<hkk::bus::uart::ConfigContext*>(ctx_raw);
-
-    if(!ctx->instance) {
-        HERROR("[UART   ] Null UART instance in context");
-        return ctx->status = hkk::bus::uart::UART_ERROR_NULL_INSTANCE;
-    }
-    ::uart_inst *instance = static_cast<::uart_inst*>(ctx->instance);
-
-    if(!ctx->dma) {
-        HERROR("[UART   ] Null DMA instance in context");
-        return ctx->status = hkk::bus::uart::UART_ERROR_NULL_DMA_CONTEXT;
-    }
-    auto *dma = static_cast<DMAContext*>(ctx->dma);
-
-
-    if(dma->rx_channel != -1 || dma->tx_channel != -1) {
-        HERROR("[UART   ] DMA already initialized");
-        return ctx->status = hkk::bus::uart::UART_ERROR_GENERIC;
-    }
-
-    dma->rx_active = false;
-    dma->tx_active = false;
-    
-    dma->rx_channel = ::dma_claim_unused_channel(false);
-    dma->tx_channel = ::dma_claim_unused_channel(false);
-
-    if(dma->rx_channel < 0 || dma->tx_channel < 0) {
-        HWARN("[UART   ] No free DMA channels to claim");
-
-        ctx->rx_dma_enabled = false;
-        dma->rx_channel = -1;
-        dma->tx_channel = -1;
-
-        return ctx->status = hkk::bus::uart::UART_ERROR_GENERIC;
-    }
-
-
-    ctx->rx_dma_enabled = false;
-    ctx->tx_dma_enabled = false;
-
-    // RX
-    ::dma_channel_config rx_dma_config = ::dma_channel_get_default_config(dma->rx_channel);
-
-    ::channel_config_set_read_increment(&rx_dma_config, false);
-    ::channel_config_set_write_increment(&rx_dma_config, true);
-    ::channel_config_set_transfer_data_size(&rx_dma_config, DMA_SIZE_8);
-    ::channel_config_set_dreq(&rx_dma_config, ::uart_get_dreq_num(instance, false));
-
-    ::dma_channel_configure(dma->rx_channel, &rx_dma_config, nullptr, &uart_get_hw(instance)->dr, ::dma_encode_transfer_count(0), false);
-    // TODO: register uart dma
-    ::dma_channel_acknowledge_irq1(dma->rx_channel);
-    ::dma_channel_set_irq1_enabled(dma->rx_channel, true);
-
-
-    // TX
-    ::dma_channel_config tx_dma_config = ::dma_channel_get_default_config(dma->tx_channel);
-
-    ::channel_config_set_read_increment(&tx_dma_config, true);
-    ::channel_config_set_write_increment(&tx_dma_config, false);
-    ::channel_config_set_transfer_data_size(&tx_dma_config, DMA_SIZE_8);
-    ::channel_config_set_dreq(&tx_dma_config, ::uart_get_dreq_num(instance, true));
-
-    ::dma_channel_configure(dma->tx_channel, &tx_dma_config, &uart_get_hw(instance)->dr, nullptr, ::dma_encode_transfer_count(0), false);
-    // TODO: register uart dma
-    ::dma_channel_acknowledge_irq1(dma->tx_channel);
-    ::dma_channel_set_irq1_enabled(dma->tx_channel, true);
-
-
-    ctx->rx_dma_enabled = true;
-    ctx->tx_dma_enabled = true;
-
-    return ctx->status = hkk::bus::uart::UART_OK;
-}
 
 static int8 init_fn(void *ctx_raw, bool8 use_dma) {
     HTRACE("uart.cpp -> s:init_fn(void*):int8");
@@ -129,6 +43,9 @@ static int8 init_fn(void *ctx_raw, bool8 use_dma) {
     ::uart_set_format(instance, ctx->data_bits, ctx->stop_bits, static_cast<::uart_parity_t>(ctx->parity_bits));
     ::uart_set_fifo_enabled(instance, true);
 
+    ::gpio_init(ctx->tx);
+    ::gpio_init(ctx->rx);
+
     ::gpio_set_function(ctx->tx, GPIO_FUNC_UART);
     ::gpio_set_function(ctx->rx, GPIO_FUNC_UART);
 
@@ -145,9 +62,8 @@ static int8 init_fn(void *ctx_raw, bool8 use_dma) {
     HDEBUG("[UART   ] Data bits: %d ; Parity bits: %d ; Stop bits: %d", ctx->data_bits, ctx->parity_bits, ctx->stop_bits);
 
     if(use_dma == true) {
-        int8 status = init_dma_fn(ctx);
-        if(status < hkk::bus::uart::UART_OK) {
-            HWARN("[UART   ] DMA initialization fail");
+        if(init_dma_fn(ctx) < hkk::bus::uart::UART_OK) {
+            HERROR("[UART   ] DMA initialization fail");
         }
     }
 
@@ -329,8 +245,8 @@ static int32 write_blocking_fn(void *ctx_raw, const uint8 *src, size_t len) {
     return static_cast<int32>(ctx->status);
 }
 
-static int32 read_blocking_fn(void *ctx_raw, uint8 *dst, size_t len) {
-    HTRACE("uart.cpp -> s:read_blocking_fn(void*, uint8*, size_t):int32");
+static int32 read_fn(void *ctx_raw, uint8 *dst, size_t len) {
+    HTRACE("uart.cpp -> s:read_fn(void*, uint8*, size_t):int32");
 
     if(!ctx_raw) {
         HERROR("[UART   ] Null context passed to function");
@@ -345,6 +261,14 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 *dst, size_t len) {
         return static_cast<int32>(ctx->status);
     } 
     ::uart_inst *instance = static_cast<::uart_inst*>(ctx->instance);
+
+    if(!ctx->dma) {
+        HERROR("[UART   ] Null DMA context passed to function");
+        
+        ctx->status = hkk::bus::uart::UART_ERROR_NULL_DMA_CONTEXT;
+        return static_cast<int32>(ctx->status);
+    }
+    auto *dma = static_cast<hkk::bus::uart::DMAContext*>(ctx->dma);
 
     if(!dst) {
         HERROR("[UART   ] Null data pointer passed to function");
@@ -361,10 +285,18 @@ static int32 read_blocking_fn(void *ctx_raw, uint8 *dst, size_t len) {
     }
 
 
-    ::uart_read_blocking(instance, dst, len);
+    if(ctx->dma_enable == true) {
+        dma->rx_active = true;
+        ::dma_channel_set_write_addr(dma->rx_channel, dst, false);
+        ::dma_channel_set_transfer_count(dma->rx_channel, ::dma_encode_transfer_count(len), true);
+    } else {
+        ::uart_read_blocking(instance, dst, len);
+    }
 
+    
     HTRACE("[UART   ] First byte   : 0x%02X", dst[0]);
     HTRACE("[UART   ] Data length  : %zu", len);
+    HTRACE("[UART   ] DMA channnel : %d", dma->rx_channel);
 
     HTRACE("[UART   ] Read complete");
 
@@ -416,50 +348,7 @@ static int32 write_timeout_fn(void *ctx_raw, const uint8 *src, size_t len, uint3
 }
 
 static int32 read_timeout_fn(void *ctx_raw, uint8 *dst, size_t len, uint32 timeout_us) {
-    HTRACE("uart.cpp -> s:read_blocking_fn(void*, uint8*, size_t):int32");
-
-    if(!ctx_raw) {
-        HERROR("[UART   ] Null context passed to function");
-        return static_cast<int32>(hkk::bus::uart::UART_ERROR_NULL_CONTEXT);
-    }
-    auto *ctx = static_cast<hkk::bus::uart::ConfigContext*>(ctx_raw);
-
-    if(!ctx->instance) {
-        HERROR("[UART   ] Null UARTinstance in context");
-
-        ctx->status = hkk::bus::uart::UART_ERROR_NULL_INSTANCE;
-        return static_cast<int32>(ctx->status);
-    } 
-    ::uart_inst *instance = static_cast<::uart_inst*>(ctx->instance);
-
-    if(!dst) {
-        HERROR("[UART   ] Null data pointer passed to function");
-
-        ctx->status = hkk::bus::uart::UART_ERROR_NULL_DATA;
-        return static_cast<int32>(ctx->status);
-    }
-
-    if(len == 0) {
-        HERROR("[UART   ] Data length is 0");
-
-        ctx->status = hkk::bus::uart::UART_ERROR_ZERO_LENGTH;
-        return static_cast<int32>(ctx->status);
-    }
-
-    // TODO: timeout
-    ::uart_read_blocking(instance, dst, len);
-
-    HTRACE("[UART   ] First byte   : 0x%02X", dst[0]);
-    HTRACE("[UART   ] Data length  : %zu", len);
-
-    HTRACE("[UART   ] Read complete");
-
-    ctx->status = hkk::bus::uart::UART_OK;
-    return static_cast<int32>(ctx->status);
-}
-
-static int32 read_dma_start_fn(void *ctx_raw, uint8 *dst, size_t len) {
-    HTRACE("uart.cpp -> s:read_dma_start_fn(void*, uint8*, size_t):int32");
+    HTRACE("uart.cpp -> s:read_timeout_fn(void*, uint8*, size_t, uint32):int32");
 
     if(!ctx_raw) {
         HERROR("[UART   ] Null context passed to function");
@@ -490,20 +379,13 @@ static int32 read_dma_start_fn(void *ctx_raw, uint8 *dst, size_t len) {
     }
 
 
-    // TODO:
-
-
-    HTRACE("[UART   ] First byte   : 0x%02X", dst[0]);
-    HTRACE("[UART   ] Data length  : %zu", len);
-
-    HTRACE("[UART   ] Read complete");
-
-    ctx->status = hkk::bus::uart::UART_OK;
-    return static_cast<int32>(ctx->status);
+    if(::uart_is_readable_within_us(instance, timeout_us)) return read_fn(ctx_raw, dst, len);
+    else return static_cast<int32>(hkk::bus::uart::UART_ERROR_TIMEOUT);
 }
-
 
 static hkk::bus::uart::BackendTable backend {
+    .init_dma_fn = init_dma_fn,
+
     .init_fn = init_fn,
     .deinit_fn = deinit_fn,
 
@@ -514,12 +396,10 @@ static hkk::bus::uart::BackendTable backend {
     .get_index_fn = get_index_fn,
 
     .write_blocking_fn = write_blocking_fn,
-    .read_blocking_fn = read_blocking_fn,
+    .read_fn = read_fn,
 
     .write_timeout_fn = write_timeout_fn,
-    .read_timeout_fn = read_timeout_fn,
-
-    .read_dma_start_fn = read_dma_start_fn
+    .read_timeout_fn = read_timeout_fn
 };
 
 }
@@ -536,6 +416,7 @@ inline constexpr uint8 PIN_RX1 = 9;
 inline constexpr uint8 data_bits   = 8;
 inline constexpr uint8 parity_bits = 0;
 inline constexpr uint8 stop_bits   = 1;
+
 
 const char *rts(int8 status) {
     switch(status) {
@@ -564,6 +445,8 @@ void bind(UART &uart, ConfigContext &cfg, BackendTable &backend) {
 
     uart.ctx = static_cast<ConfigContext*>(&cfg);
 
+    uart.init_dma_fn = backend.init_dma_fn,
+
     uart.init_fn = backend.init_fn;
     uart.deinit_fn = backend.deinit_fn;
 
@@ -574,12 +457,10 @@ void bind(UART &uart, ConfigContext &cfg, BackendTable &backend) {
     uart.get_index_fn = backend.get_index_fn;
 
     uart.write_blocking_fn = backend.write_blocking_fn;
-    uart.read_blocking_fn  = backend.read_blocking_fn;
+    uart.read_fn  = backend.read_fn;
 
     uart.write_timeout_fn = backend.write_timeout_fn;
     uart.read_timeout_fn  = backend.read_timeout_fn;
-
-    uart.read_dma_start_fn  = backend.read_dma_start_fn;
 
     HINFO("[UART    ] UART instance bound to config context");
 }
@@ -589,30 +470,39 @@ void bind(UART &uart, ConfigContext &cfg) {
     bind(uart, cfg, hkk::rp2350::uart::backend);
 }
 
+static DMAContext uart0_dma_context {
+    .irq = IRQ_0
+};
 static ConfigContext uart0_default_config {
-    .instance = uart0,
-    .baudrate = 9600,
-    .data_bits   = data_bits,
-    .parity_bits = parity_bits,
-    .stop_bits   = stop_bits,
-    .tx = PIN_TX0,
-    .rx = PIN_RX0,
-    .index = 0
+    .instance    = uart0,
+    .dma         = &uart0_dma_context,
+    .baudrate    = 9600,
+    .data_bits   = data_bits,   // 8
+    .parity_bits = parity_bits, // N
+    .stop_bits   = stop_bits,   // 1
+    .tx          = PIN_TX0,
+    .rx          = PIN_RX0,
+    .index       = 0
 };
 
+static DMAContext uart1_dma_context {
+    .irq = IRQ_1
+};
 static ConfigContext uart1_default_config {
-    .instance = uart1,
-    .baudrate = 9600,
-    .data_bits   = data_bits,
-    .parity_bits = parity_bits,
-    .stop_bits   = stop_bits,
-    .tx = PIN_TX1,
-    .rx = PIN_RX1,
-    .index = 1
+    .instance    = uart1,
+    .dma         = &uart1_dma_context,
+    .baudrate    = 9600,
+    .data_bits   = data_bits,   // 8
+    .parity_bits = parity_bits, // N
+    .stop_bits   = stop_bits,   // 1
+    .tx          = PIN_TX1,
+    .rx          = PIN_RX1,
+    .index       = 1
 };
 
 UART UART0 {
     &uart0_default_config,
+    hkk::rp2350::uart::init_dma_fn,
     hkk::rp2350::uart::init_fn,
     hkk::rp2350::uart::deinit_fn,
     hkk::rp2350::uart::set_baudrate_fn,
@@ -620,12 +510,12 @@ UART UART0 {
     hkk::rp2350::uart::set_index_fn,
     hkk::rp2350::uart::get_index_fn,
     hkk::rp2350::uart::write_blocking_fn,
-    hkk::rp2350::uart::read_blocking_fn,
-    hkk::rp2350::uart::read_dma_start_fn
+    hkk::rp2350::uart::read_fn
 };
 
 UART UART1 {
     &uart1_default_config,
+    hkk::rp2350::uart::init_dma_fn,
     hkk::rp2350::uart::init_fn,
     hkk::rp2350::uart::deinit_fn,
     hkk::rp2350::uart::set_baudrate_fn,
@@ -633,8 +523,7 @@ UART UART1 {
     hkk::rp2350::uart::set_index_fn,
     hkk::rp2350::uart::get_index_fn,
     hkk::rp2350::uart::write_blocking_fn,
-    hkk::rp2350::uart::read_blocking_fn,
-    hkk::rp2350::uart::read_dma_start_fn
+    hkk::rp2350::uart::read_fn
 };
 
 UART UART2 {};    // Not present on RP2350

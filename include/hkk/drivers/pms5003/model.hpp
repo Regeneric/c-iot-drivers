@@ -4,12 +4,12 @@
 
 namespace hkk::pms5003 {
 
-inline constexpr size_t DATA_FRAME_LENGTH    = (size_t)(32);
-inline constexpr size_t COMMAND_FRAME_LENGTH = (size_t)(7);
-inline constexpr size_t SECTION_FRAME_LENGTH = (size_t)(2);
+inline constexpr size_t  DATA_FRAME_LENGTH    = (size_t)(32);
+inline constexpr size_t  COMMAND_FRAME_LENGTH = (size_t)(7);
+inline constexpr size_t  SECTION_FRAME_LENGTH = (size_t)(2);
 
-inline constexpr uint8 START_BYTE0 = (uint8)(0x42);
-inline constexpr uint8 START_BYTE1 = (uint8)(0x4D);
+inline constexpr uint8   START_BYTE0   = (uint8)(0x42);
+inline constexpr uint8   START_BYTE1   = (uint8)(0x4D);
 
 inline constexpr float32 PM_GAIN       =  0.524f;
 inline constexpr float32 RH_GAIN       =  0.0862f;
@@ -82,13 +82,15 @@ struct Context {
 };
 
 struct Config {
-    void        *nvm = nullptr;
+    void *nvm = nullptr;
 
-    bool8       enable;
-    bool8       compensate_humidity;
+    int8  gpio_reset = -1;
 
-    Mode        operation_mode = Mode::Passive;
-    Power       sleep_mode = Power::Wakeup;
+    bool8 enable;
+    bool8 compensate_humidity;
+
+    Mode  operation_mode = Mode::Passive;
+    Power sleep_mode = Power::Wakeup;
 
     const char  *name = nullptr;
     const char  *location = nullptr;
